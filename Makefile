@@ -77,10 +77,17 @@ AUTOCONF = ${SHELL} /Users/diederik/Development/analytics/udp-filters/missing --
 AUTOHEADER = ${SHELL} /Users/diederik/Development/analytics/udp-filters/missing --run autoheader
 AUTOMAKE = ${SHELL} /Users/diederik/Development/analytics/udp-filters/missing --run automake-1.10
 AWK = awk
+<<<<<<< HEAD
 CC = gcc -std=gnu99
 CCDEPMODE = depmode=gcc3
 CFLAGS = -g -O2
 CPP = gcc -std=gnu99 -E
+=======
+CC = gcc
+CCDEPMODE = depmode=gcc3
+CFLAGS = -g -O2
+CPP = gcc -E
+>>>>>>> 46c8a66... Initial commit, feedback Catrope incorporated, feedback Tim Starling incorporated
 CPPFLAGS = 
 CYGPATH_W = echo
 DEFS = -DPACKAGE_NAME=\"\" -DPACKAGE_TARNAME=\"\" -DPACKAGE_VERSION=\"\" -DPACKAGE_STRING=\"\" -DPACKAGE_BUGREPORT=\"\" -DPACKAGE=\"udp_filter\" -DVERSION=\"0.1.0\" -DHAVE_LIBGEOIP=1 -DSTDC_HEADERS=1 -DHAVE_SYS_TYPES_H=1 -DHAVE_SYS_STAT_H=1 -DHAVE_STDLIB_H=1 -DHAVE_STRING_H=1 -DHAVE_MEMORY_H=1 -DHAVE_STRINGS_H=1 -DHAVE_INTTYPES_H=1 -DHAVE_STDINT_H=1 -DHAVE_UNISTD_H=1 -DHAVE_GEOIP_H=1
