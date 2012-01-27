@@ -1,0 +1,10 @@
+*.o
+GeoIP.dat
+Debug/*
+udp_filter
+Makefile.in
+/autom4te.cache
+/data
+depcomp
+install-sh
+missing

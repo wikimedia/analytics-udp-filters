@@ -1,0 +1,21 @@
+
+
+DEPENDENCIES:
+
+Make sure you have installed version 1.4.8 of MaxMind C library, available at: http://www.maxmind.com/app/c
+Also make sure you have a copy of the MaxMind Geo Database, available at: http://www.maxmind.com/app/geolitecountry
+
+
+FIRST INSTALL
+
+git clone http://gerrit.wikimedia.org:29416/analytics/udp-filters.git
+run ./configure
+make
+
+
+UPDATE
+
+git pull
+make clean
+./configure
+make

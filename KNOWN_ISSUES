@@ -1,0 +1,5 @@
+1) UDP-filter does not (yet) support regular expression matching of filters and domain names. 
+
+2) UDP-filter does not (yet) support more granular geocoded data then the current country level. 
+
+3) The MaxMind City Geo database is not yet supported. 
