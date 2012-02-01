@@ -1,0 +1,2 @@
+shlibs:Depends=libc6 (>= 2.4), libgeoip1 (>= 1.4.7~beta5+dfsg)
+misc:Depends=
