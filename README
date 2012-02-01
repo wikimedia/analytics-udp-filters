@@ -1,10 +1,59 @@
-Wikimedia's generic UDP filtering system 0.1
+=Wikimedia's generic UDP filtering system=
 
 Wikimedia Foundation (c) 2012 // Diederik van Liere
+This code has been released under the GPL2. 
 
-BACKGROUND
+=Dependencies=
+libgeoip-dev is a dependency that needs to be installed if you are going to
+comile manually.
+
+=Installation=
+
+==Compiling==
+You can run the following sequence to install udp-filter:
+* ./configure
+* make install
+
+==Debian package==
+You can create a package yourself using the following steps:
+(replace strings where necessary)
+
+# git clone git://gerrit.wikimedia.org:29416/analytics/udp-filters.git
+# mv udp-filters udp-filters-0.1+git<yyyymmdd>
+# tar -cvzf udp-filters-0.1+git<yyyymmdd>.tar.gz udp-filters-0.1+git<yyyymmdd>/
+#dh_make -c gpl2 -e <your_email@wikimedia.org> -f ../udp-filters-0.1+git<yyyymmdd>.tar.gz 
+# make changes (if necessary) to control-sample and copy it to debian/control
+# make changes (if necessary) to copyright-sample and copy it to debian/copyright
+#dpkg-depcheck -d ./configure (#output of dpkg-depcheck (libraries) must be added to debian/control, the following three packages need to be added to the control file: 
+## libgeoip-dev
+## mime-support
+## mawk
+## autotools-dev
+#dpkg-buildpackage -rfakeroot -sgpg (if you want to sign the package then make sure that name/ email address of the maintainer in the control file 'exactly' matches the name and email address of your GPG key.
+
+==Example control file==
+<pre>
+Source: udp-filters
+Section: utils
+Priority: extra
+Maintainer: Diederik van Liere (Wikimedia Foundation) <dvanliere@wikimedia.org>
+Build-Depends: debhelper (>= 7.0.50~), autotools-dev, libgeoip-dev,mime-support, mawk
+Standards-Version: 3.8.4
+Homepage: <http://www.mediawiki.org/wiki/Analytics/UDP-filters>
+Vcs-Git: git://gerrit.wikimedia.org:29416/analytics/udp-filters.git
+Vcs-Browser: https://gerrit.wikimedia.org/r/gitweb?p=analytics/udp-filters.git
+
+Package: udp-filters
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Description: <Wikimedia's udp-filter system.>
+ <Wikimedia has a udp-logger that sends packets from the squid servers containing pageviews. UDP-filtes allows you to configure a filter and write particular pageviews, based on a combination of domain and url matching, to a logfile. It also offers geocoding and anonymization of ip addresses. >
+</pre>
+
+=Background=
 This new filter system replaces the old collection of filters written in C. 
 
+=Command line arguments=
 The following is a list of valid command line parameters. 
 	
 Either -url or -project are mandatory (you can also use them both), the other 
@@ -28,14 +77,14 @@ comma separated list of country codes. Valid country codes are the ISO 3166
 country codes (see http://www.maxmind.com/app/iso3166). 
 	
 -v or --verbose:      output detailed debug information, not recommended in 
-production. Output is send to steer.
+production. Output is sent to stderr.
 
 -h or --help:         show this menu with all command line options.
 
 For options -u, -p and -c you can enter multiple values if you separate them by 
-a comma. 
+a comma.
 
-EXAMPLES
+=Examples=
 
 
 ./udp_filter -p en.wikipedia            this will log all pageviews (depending 
