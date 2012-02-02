@@ -61,7 +61,8 @@ int domain_count =0;
 char *country_input;
 char *url_input;
 char *domain_input;
-char *db_path = "/var/log/squid/filters/GeoIPLibs/GeoIPCity.current.dat";
+char *db_path = "/var/log/squid/filters/GeoIPLibs/GeoIP.dat";
+
 
 int regex_flag = 0;
 
@@ -69,7 +70,7 @@ int regex_flag = 0;
  * this flag indicates whether we do regex matching
  * or substring matching (substring matching is the default.
  */
-
+int no_filter_flag =0;      // this flag indicates that we are not filtering at *all* everything gets matched. Use carefully!
 int verbose_flag = 0;       // this flag indicates whether we should output detailed debug messages.
 int limit_country_flag = 0;	// this flag indicates whether we should restrict the log to certain countries.
 int geocode_flag =0;		// this flag indicates whether the ip address should be geocoded.
@@ -248,6 +249,10 @@ int match_url(char *t, Url *urls, Domain *domains){
 	 * and finally option 1.
 	 *
 	 */
+	if (no_filter_flag ==1){
+		return 1;
+	}
+
 	int found_domain = 0;
 	char* domain;
 	int j;
@@ -502,6 +507,7 @@ void usage() {
 	printf("\n");
 	printf("-c or --country_list: limit the log to particular countries, this should be a comma separated list of country codes. Valid country codes are the ISO 3166 country codes (see http://www.maxmind.com/app/iso3166). \n");
 	printf("-r or --regex:        the parameters -p and -u are interpreted as regular expressions. Regular expression searching is probably slower so substring matching is recommended.\n");
+	printf("-f or --force:        do not match on either domain or url part, basically turn filtering off. Can be useful when filtering for specific country.");
 	printf("\n");
 	printf("-v or --verbose:      output detailed debug information to stderr, not recommended in production.\n");
 	printf("-h or --help:         show this menu with all command line options.\n");
@@ -518,12 +524,13 @@ int main(int argc, char **argv){
 			{"regex", no_argument, NULL, 'r'},
 			{"verbose", no_argument, NULL, 'v'},
 			{"help", no_argument, NULL, 'h'},
+			{"force", no_argument, NULL, 'f'},
 			{0, 0, 0, 0}
 	};
 
 	int c;
 
-	while((c = getopt_long(argc, argv, "u:p:gad:c:vhr", long_options, NULL)) != -1) {
+	while((c = getopt_long(argc, argv, "u:p:gad:c:vhrf", long_options, NULL)) != -1) {
 		// we accept -u, -p, -d and -c have mandatory arguments
 		switch(c)
 		{
@@ -572,14 +579,19 @@ int main(int argc, char **argv){
 			/* indicate whether we should treat the search string as a regular expression or not, default is false */
 			break;
 
+		case 'f':
+			no_filter_flag =1;
+			break;
+
 		case 'h':
 			usage();
 			break;
+
 		default:
 			exit(-1);
 		}
 	}
-	if (required_args>=1){
+	if (required_args>=1 || no_filter_flag==1){
 		parse();
 	}
 	return 0;
