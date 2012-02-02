@@ -45,7 +45,7 @@ Vcs-Browser: https://gerrit.wikimedia.org/r/gitweb?p=analytics/udp-filters.git
 
 Package: udp-filters
 Architecture: any
-Depends: ${shlibs:Depends}, ${misc:Depends}
+Depends: libc6 (>= 2.4), libgeoip1 (>= 1.4.6)
 Description: <Wikimedia's udp-filter system.>
  <Wikimedia has a udp-logger that sends packets from the squid servers containing pageviews. UDP-filtes allows you to configure a filter and write particular pageviews, based on a combination of domain and url matching, to a logfile. It also offers geocoding and anonymization of ip addresses. >
 </pre>
@@ -75,6 +75,9 @@ the Country database, the City database is not yet supported.
 -c or --country_list: limit the log to particular countries, this should be a 
 comma separated list of country codes. Valid country codes are the ISO 3166 
 country codes (see http://www.maxmind.com/app/iso3166). 
+
+-f or --force:        do not match on either domain or url part, basically turn 
+filtering off. Can be useful when filtering for a specific country.
 	
 -v or --verbose:      output detailed debug information, not recommended in 
 production. Output is sent to stderr.
