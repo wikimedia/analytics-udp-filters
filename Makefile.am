@@ -1,4 +1,4 @@
-bin_PROGRAMS = udp_filter
+bin_PROGRAMS = udp-filter
 udp_filter_SOURCES = src/udp.c
 AM_CPPFLAGS = $(GEOIP_CFLAGS) -g
 udp_filter_LDADD = $(GEOIP_LIBS) $(DEPS_LIBS) -lGeoIP
