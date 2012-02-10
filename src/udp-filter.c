@@ -14,6 +14,7 @@
 #include <regex.h>
 #include <GeoIP.h>
 #include <GeoIPCity.h>
+#include <"countries.c">
 
 /*
     Copyright (C) 2012  <Diederik van Liere / Wikimedia Foundation>
