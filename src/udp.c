@@ -4,6 +4,8 @@
 #define FPUTS fputs
 #endif
 
+#define MAX_ERROR_MSG 0x1000
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <ctype.h>
@@ -120,13 +122,12 @@ int determine_num_obs(char *raw_input) {
 }
 
 regex_t* init_regex(char *token) {
-	regex_t *re = malloc(sizeof(regex_t));
+	regex_t *re;
 	int errcode = regcomp(re, token, REG_EXTENDED|REG_NOSUB);
 	if (errcode!=0) {
-		size_t err_length = regerror (errcode, re, NULL, 0);
-		char *err = malloc (err_length);
-		regerror (errcode, re, err, err_length);
-		fprintf(stderr, "When compiling %s to a regular expression, we encountered the following error:\n%s", token, err);
+		char error_message[MAX_ERROR_MSG];
+		regerror (errcode, re, error_message, MAX_ERROR_MSG);
+		fprintf(stderr, "When compiling %s to a regular expression, we encountered the following error:\n%s", token, error_message);
 		exit(EXIT_FAILURE);      /* report error */
 	}
 	return re;
