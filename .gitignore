@@ -4,5 +4,12 @@ Debug/*
 udp_filter
 Makefile.in
 /autom4te.cache
-/data
+data/
 .cproject
+package/
+config.status
+.deps/
+debian/depcomp
+debian/install-sh
+debian/missing
+
