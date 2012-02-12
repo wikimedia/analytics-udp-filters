@@ -14,7 +14,7 @@
 #include <regex.h>
 #include <GeoIP.h>
 #include <GeoIPCity.h>
-#include <"countries.c">
+#include "countries.c"
 
 /*
     Copyright (C) 2012  <Diederik van Liere / Wikimedia Foundation>
@@ -49,6 +49,15 @@ typedef struct{
 	char *name;
 	regex_t *re;
 } Domain;
+
+typedef struct{
+	char *domain_str;
+	regex_t *domain_re;
+	char *path_str;
+	regex_t *path_re;
+	char *ip;
+	char **countries;
+} Filter;
 
 char anonymous_ip[] = "0.0.0.0";
 char unknown_geography[] = "XX";
@@ -122,16 +131,16 @@ int determine_num_obs(char *raw_input) {
 	return size;
 }
 
-regex_t* init_regex(char *token) {
-	regex_t *re;
-	int errcode = regcomp(re, token, REG_EXTENDED|REG_NOSUB);
+void init_regex(char *token, int i, Filter *filters) {
+	regex_t re; // = malloc(sizeof(regex_t));
+	int errcode = regcomp(&re, token, REG_EXTENDED|REG_NOSUB);
 	if (errcode!=0) {
 		char error_message[MAX_ERROR_MSG];
-		regerror (errcode, re, error_message, MAX_ERROR_MSG);
+		regerror (errcode, &re, error_message, MAX_ERROR_MSG);
 		fprintf(stderr, "When compiling %s to a regular expression, we encountered the following error:\n%s", token, error_message);
 		exit(EXIT_FAILURE);      /* report error */
 	}
-	return re;
+	filters[i].path_re = &re;
 }
 
 char** init_countries() {
@@ -142,7 +151,13 @@ char** init_countries() {
 		char *country_token = strdup(strtok(country_input, comma_delimiter));
 		int i=0;
 		while (country_token != NULL) {
-			countries[i] = country_token;
+			int result = verify_country_code(country_token);
+			if (result){
+				countries[i] = country_token;
+			} else {
+				fprintf(stderr, "%s is not a valid ISO 3166-1 country code.\n", country_token);
+				exit(EXIT_FAILURE);
+			}
 			i++;
 			country_token = strtok(NULL, comma_delimiter);
 		}
@@ -167,7 +182,7 @@ Url* init_urls() {
 		if (regex_flag == 0){
 			urls[i].name = url_token;
 		} else {
-			urls[i].re = init_regex((char*)url_token);
+			init_regex((char*)url_token, i, urls);
 		}
 		i++;
 		url_token = strtok(NULL,comma_delimiter);
@@ -194,7 +209,12 @@ Domain* init_domains(){
 	char *domain_token;
 	domain_token = strtok(domain_input, comma_delimiter);
 	while (domain_token !=NULL){
-		domains[i].name = domain_token;
+		if (regex_flag == 0){
+			domains[i].name = domain_token;
+		}else {
+			init_regex((char*)domain_token, i, domains);
+		}
+
 		i++;
 		domain_token=strtok(NULL, comma_delimiter);
 	}
@@ -274,6 +294,7 @@ int match_url(char *t, Url *urls, Domain *domains){
 						found_domain = 1;
 					}
 				} else {
+					printf("%s\t%p\n", domain, domains[j].re);
 					if (regexec(domains[j].re, domain, 0, pmatch, 0) == 0) {
 						found_domain = 1;
 					}
@@ -595,6 +616,8 @@ int main(int argc, char **argv){
 	}
 	if (required_args>=1 || no_filter_flag==1){
 		parse();
+	} else{
+		usage();
 	}
 	return 0;
 }

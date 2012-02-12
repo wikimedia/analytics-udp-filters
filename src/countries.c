@@ -18,19 +18,10 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
-char *get_value(char *key, char *table){
-	int i;
-	for(i=0;i<253;++i){
-		if (strncmp(key, &table[i],2) == 0) {
-			return &table[i];
-		}
-	}
-	return NULL;
-}
 
 // This is an array with valid country codes, the country codes that are
 // supplied on the command line will be checked against this array.
-char *table[253] = {
+char *country_code_array[253] = {
 "A1",    //,Anonymous Proxy
 "A2",    //,Satellite Provider
 "O1",    //,Other Country
@@ -285,3 +276,13 @@ char *table[253] = {
 "ZM",    //,Zambia"
 "ZW",    //,Zimbabwe"
 };
+
+int verify_country_code(char *country_code){
+	int i;
+	for(i=0;i<253;++i){
+		if (strcmp(country_code, country_code_array[i]) == 0) {
+			return 1;
+		}
+	}
+	return 0;
+}

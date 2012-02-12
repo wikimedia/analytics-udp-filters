@@ -1,6 +1,6 @@
-AC_INIT(src/udp.c)
-PACKAGE=udp_filter
-VERSION=0.1.0
+AC_INIT(src/udp-filter.c)
+PACKAGE=udp-filter
+VERSION=0.2.0
 AM_INIT_AUTOMAKE($PACKAGE, $VERSION)
 AC_PROG_CC_C99
 AC_CHECK_LIB(geoip, GeoIP_num_countries)

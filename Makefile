@@ -15,9 +15,9 @@
 
 
 
-pkgdatadir = $(datadir)/udp_filter
-pkglibdir = $(libdir)/udp_filter
-pkgincludedir = $(includedir)/udp_filter
+pkgdatadir = $(datadir)/udp-filter
+pkglibdir = $(libdir)/udp-filter
+pkgincludedir = $(includedir)/udp-filter
 am__cd = CDPATH="$${ZSH_VERSION+.}$(PATH_SEPARATOR)" && cd
 install_sh_DATA = $(install_sh) -c -m 644
 install_sh_PROGRAM = $(install_sh) -c
@@ -30,7 +30,7 @@ POST_INSTALL = :
 NORMAL_UNINSTALL = :
 PRE_UNINSTALL = :
 POST_UNINSTALL = :
-bin_PROGRAMS = udp_filter$(EXEEXT)
+bin_PROGRAMS = udp-filter$(EXEEXT)
 subdir = .
 DIST_COMMON = README $(am__configure_deps) $(srcdir)/Makefile.am \
 	$(srcdir)/Makefile.in $(top_srcdir)/configure AUTHORS COPYING \
@@ -46,7 +46,7 @@ CONFIG_CLEAN_FILES =
 am__installdirs = "$(DESTDIR)$(bindir)"
 binPROGRAMS_INSTALL = $(INSTALL_PROGRAM)
 PROGRAMS = $(bin_PROGRAMS)
-am_udp_filter_OBJECTS = udp.$(OBJEXT)
+am_udp_filter_OBJECTS = udp-filter.$(OBJEXT)
 udp_filter_OBJECTS = $(am_udp_filter_OBJECTS)
 udp_filter_DEPENDENCIES =
 DEFAULT_INCLUDES = -I.
@@ -83,7 +83,7 @@ CFLAGS = -g -O2
 CPP = gcc -std=gnu99 -E
 CPPFLAGS = 
 CYGPATH_W = echo
-DEFS = -DPACKAGE_NAME=\"\" -DPACKAGE_TARNAME=\"\" -DPACKAGE_VERSION=\"\" -DPACKAGE_STRING=\"\" -DPACKAGE_BUGREPORT=\"\" -DPACKAGE=\"udp_filter\" -DVERSION=\"0.1.0\" -DHAVE_LIBGEOIP=1 -DSTDC_HEADERS=1 -DHAVE_SYS_TYPES_H=1 -DHAVE_SYS_STAT_H=1 -DHAVE_STDLIB_H=1 -DHAVE_STRING_H=1 -DHAVE_MEMORY_H=1 -DHAVE_STRINGS_H=1 -DHAVE_INTTYPES_H=1 -DHAVE_STDINT_H=1 -DHAVE_UNISTD_H=1 -DHAVE_GEOIP_H=1
+DEFS = -DPACKAGE_NAME=\"\" -DPACKAGE_TARNAME=\"\" -DPACKAGE_VERSION=\"\" -DPACKAGE_STRING=\"\" -DPACKAGE_BUGREPORT=\"\" -DPACKAGE=\"udp-filter\" -DVERSION=\"0.2.0\" -DHAVE_LIBGEOIP=1 -DSTDC_HEADERS=1 -DHAVE_SYS_TYPES_H=1 -DHAVE_SYS_STAT_H=1 -DHAVE_STDLIB_H=1 -DHAVE_STRING_H=1 -DHAVE_MEMORY_H=1 -DHAVE_STRINGS_H=1 -DHAVE_INTTYPES_H=1 -DHAVE_STDINT_H=1 -DHAVE_UNISTD_H=1 -DHAVE_GEOIP_H=1
 DEPDIR = .deps
 ECHO_C = \c
 ECHO_N = 
@@ -103,7 +103,7 @@ LTLIBOBJS =
 MAKEINFO = ${SHELL} /Users/diederik/Development/analytics/udp-filters/missing --run makeinfo
 MKDIR_P = ./install-sh -c -d
 OBJEXT = o
-PACKAGE = udp_filter
+PACKAGE = udp-filter
 PACKAGE_BUGREPORT = 
 PACKAGE_NAME = 
 PACKAGE_STRING = 
@@ -113,7 +113,7 @@ PATH_SEPARATOR = :
 SET_MAKE = 
 SHELL = /bin/sh
 STRIP = 
-VERSION = 0.1.0
+VERSION = 0.2.0
 abs_builddir = /Users/diederik/Development/analytics/udp-filters
 abs_srcdir = /Users/diederik/Development/analytics/udp-filters
 abs_top_builddir = /Users/diederik/Development/analytics/udp-filters
@@ -155,7 +155,7 @@ sysconfdir = ${prefix}/etc
 target_alias = 
 top_builddir = .
 top_srcdir = .
-udp_filter_SOURCES = src/udp.c
+udp_filter_SOURCES = src/udp-filter.c
 AM_CPPFLAGS = $(GEOIP_CFLAGS) -g
 udp_filter_LDADD = $(GEOIP_LIBS) $(DEPS_LIBS) -lGeoIP
 all: all-am
@@ -218,8 +218,8 @@ uninstall-binPROGRAMS:
 
 clean-binPROGRAMS:
 	-test -z "$(bin_PROGRAMS)" || rm -f $(bin_PROGRAMS)
-udp_filter$(EXEEXT): $(udp_filter_OBJECTS) $(udp_filter_DEPENDENCIES) 
-	@rm -f udp_filter$(EXEEXT)
+udp-filter$(EXEEXT): $(udp_filter_OBJECTS) $(udp_filter_DEPENDENCIES) 
+	@rm -f udp-filter$(EXEEXT)
 	$(LINK) $(udp_filter_OBJECTS) $(udp_filter_LDADD) $(LIBS)
 
 mostlyclean-compile:
@@ -228,7 +228,7 @@ mostlyclean-compile:
 distclean-compile:
 	-rm -f *.tab.c
 
-include ./$(DEPDIR)/udp.Po
+include ./$(DEPDIR)/udp-filter.Po
 
 .c.o:
 	$(COMPILE) -MT $@ -MD -MP -MF $(DEPDIR)/$*.Tpo -c -o $@ $<
@@ -244,19 +244,19 @@ include ./$(DEPDIR)/udp.Po
 #	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
 #	$(COMPILE) -c `$(CYGPATH_W) '$<'`
 
-udp.o: src/udp.c
-	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT udp.o -MD -MP -MF $(DEPDIR)/udp.Tpo -c -o udp.o `test -f 'src/udp.c' || echo '$(srcdir)/'`src/udp.c
-	mv -f $(DEPDIR)/udp.Tpo $(DEPDIR)/udp.Po
-#	source='src/udp.c' object='udp.o' libtool=no \
+udp-filter.o: src/udp-filter.c
+	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT udp-filter.o -MD -MP -MF $(DEPDIR)/udp-filter.Tpo -c -o udp-filter.o `test -f 'src/udp-filter.c' || echo '$(srcdir)/'`src/udp-filter.c
+	mv -f $(DEPDIR)/udp-filter.Tpo $(DEPDIR)/udp-filter.Po
+#	source='src/udp-filter.c' object='udp-filter.o' libtool=no \
 #	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o udp.o `test -f 'src/udp.c' || echo '$(srcdir)/'`src/udp.c
+#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o udp-filter.o `test -f 'src/udp-filter.c' || echo '$(srcdir)/'`src/udp-filter.c
 
-udp.obj: src/udp.c
-	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT udp.obj -MD -MP -MF $(DEPDIR)/udp.Tpo -c -o udp.obj `if test -f 'src/udp.c'; then $(CYGPATH_W) 'src/udp.c'; else $(CYGPATH_W) '$(srcdir)/src/udp.c'; fi`
-	mv -f $(DEPDIR)/udp.Tpo $(DEPDIR)/udp.Po
-#	source='src/udp.c' object='udp.obj' libtool=no \
+udp-filter.obj: src/udp-filter.c
+	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT udp-filter.obj -MD -MP -MF $(DEPDIR)/udp-filter.Tpo -c -o udp-filter.obj `if test -f 'src/udp-filter.c'; then $(CYGPATH_W) 'src/udp-filter.c'; else $(CYGPATH_W) '$(srcdir)/src/udp-filter.c'; fi`
+	mv -f $(DEPDIR)/udp-filter.Tpo $(DEPDIR)/udp-filter.Po
+#	source='src/udp-filter.c' object='udp-filter.obj' libtool=no \
 #	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
-#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o udp.obj `if test -f 'src/udp.c'; then $(CYGPATH_W) 'src/udp.c'; else $(CYGPATH_W) '$(srcdir)/src/udp.c'; fi`
+#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o udp-filter.obj `if test -f 'src/udp-filter.c'; then $(CYGPATH_W) 'src/udp-filter.c'; else $(CYGPATH_W) '$(srcdir)/src/udp-filter.c'; fi`
 
 ID: $(HEADERS) $(SOURCES) $(LISP) $(TAGS_FILES)
 	list='$(SOURCES) $(HEADERS) $(LISP) $(TAGS_FILES)'; \

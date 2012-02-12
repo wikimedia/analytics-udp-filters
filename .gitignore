@@ -2,6 +2,7 @@
 GeoIP.dat
 Debug/*
 udp_filter
+udp-filter
 Makefile.in
 /autom4te.cache
 data/

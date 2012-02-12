@@ -576,7 +576,7 @@ PACKAGE_VERSION=
 PACKAGE_STRING=
 PACKAGE_BUGREPORT=
 
-ac_unique_file="src/udp.c"
+ac_unique_file="src/udp-filter.c"
 # Factoring default headers for most tests.
 ac_includes_default="\
 #include <stdio.h>
@@ -1711,8 +1711,8 @@ ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $
 ac_compiler_gnu=$ac_cv_c_compiler_gnu
 
 
-PACKAGE=udp_filter
-VERSION=0.1.0
+PACKAGE=udp-filter
+VERSION=0.2.0
 am__api_version='1.10'
 
 ac_aux_dir=
