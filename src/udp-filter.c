@@ -12,10 +12,10 @@
 #include <string.h>
 #include <getopt.h>
 #include <regex.h>
+#include <arpa/inet.h>
 #include <GeoIP.h>
 #include <GeoIPCity.h>
 #include "countries.c"
-#include "radix-tree.c"
 
 /*
     Copyright (C) 2012  <Diederik van Liere / Wikimedia Foundation>
@@ -41,12 +41,51 @@
  * run -a -d GeoIP.dat -u wiki,waka -v < example.log
  */
 
+typedef enum ScreenType{
+	NO_FILTER  =1,          // no filtering, write all hits to a file
+	URL_FILTER =2,          // filter on either domain or path (or both), default value
+	IP_FILTER  =4,          // filter on ip address or ip range
+	GEO_FILTER =8,          // filter on geographic area
+	URL_IP_FILTER = 6,      // filter on both domain / path and ip address(es)
+	URL_GEO_FILTER = 10,    // filter on both domain / path and geographic area
+	IP_GEO_FILTER = 12,     // filter on ip address(es) and geographic area
+	IP_GEO_URL_FILTER = 14, // filter all: domain / path, ip adress(es) and geographic area
+} ScreenType;
+
+typedef enum IpMatchType {
+	SIMPLE,   // exact ip address matching
+	RANGE,    // match ip address by looking at range(s).
+}IpMatchType;
+
+typedef enum SearchType{
+	STRING,   //exact (case-sensitive) substring matching, default value
+	REGEX,    //regular expression matching.
+}SearchType;
+
+typedef enum RecodeType{
+	NO,        // No recoding of a field, default value.
+	GEO,       // this flag indicates whether the ip address should be geocoded.
+	ANONYMIZE, // current ip adddress should be replaced with 0.0.0.0
+} RecodeType;
+
+typedef struct {
+	char *address;
+	unsigned long address_long;
+	unsigned long lbound;
+	unsigned long ubound;
+} Ip;
+
 typedef struct{
-	char *domain_str;
-	regex_t *domain_re;
-	char *path_str;
-	regex_t *path_re;
-	char *ip;
+	union domain{
+		char *string;
+		regex_t *regex;
+	} domain;
+
+	union path{
+		char *string;
+		regex_t *regex;
+	} path;
+	Ip ip;
 	char **countries;
 } Filter;
 
@@ -56,11 +95,12 @@ const char comma_delimiter[] =",";	//comma_delimiter has to be a comma (,)
 const char ws_delimiter[] = " ";
 const char fs_delimiter[] = "/";
 const int num_fields =14;
+
 int required_args = 0;
 int countries_count =0;
-int filter_count =0;
-int domain_count =0;
-int ipaddress_count=0;
+int num_path_filters =0;
+int num_domain_filters =0;
+int num_ipaddress_filters=0;
 
 char *country_input;
 char *url_input;
@@ -69,23 +109,12 @@ char *ipaddress_input;
 char *db_path = "/var/log/squid/filters/GeoIPLibs/GeoIP.dat";
 
 
-int regex_flag = 0;
+SearchType Search = STRING;
+RecodeType Recode = NO;
+ScreenType Screen = 0;
+IpMatchType IpMatch = SIMPLE;
 
-/*
- * this flag indicates whether we do regex matching
- * or substring matching (substring matching is the default.
- */
-int no_filter_flag =0;      // this flag indicates that we are not filtering at *all* everything gets matched. Use carefully!
 int verbose_flag = 0;       // this flag indicates whether we should output detailed debug messages.
-int limit_country_flag = 0;	// this flag indicates whether we should restrict the log to certain countries.
-int geocode_flag =0;		// this flag indicates whether the ip address should be geocoded.
-int anonymize_flag =0;      // this flag indicates whether the ip address should be anonymized.
-int ip_address_flag = 0;
-/*
- * this flag indicates whether to anonymize the ip address,
- * current ip adddress should be replaced with 0.0.0.0
- */
-
 
 /*
  * This is the expected input format, both in length and in sequence:
@@ -110,7 +139,7 @@ sq18.wikimedia.org 1715898 1169499304.066 0 1.2.3.4 TCP_MEM_HIT/200 13208 GET ht
 
  */
 
-int determine_num_obs(char *raw_input) {
+int determine_num_obs(char *raw_input, char delimiter) {
 	/*
 	 * Determine the number of comma-separated filter parameters are entered
 	 * on the command line. This function is applied to both the path_input and
@@ -120,7 +149,7 @@ int determine_num_obs(char *raw_input) {
 	int j=0;
 	if (raw_input!=NULL){
 		while(raw_input[j] !='\0') {
-			if (raw_input[j] == comma_delimiter[0]) {
+			if (raw_input[j] == delimiter) {
 				size++;
 			}
 			j++;
@@ -128,6 +157,19 @@ int determine_num_obs(char *raw_input) {
 		size++;// the number of obs. is the number of comma_delimiters plus 1
 	}
 	return size;
+}
+
+int determine_max_array(int a[], int num_elements) {
+	/*
+	 * Give an array, return the max value of the array.
+	 */
+	int i, max=-1;
+	for (i=0; i<num_elements; i++) {
+		if (a[i]>max) {
+			max=a[i];
+		}
+	}
+	return(max);
 }
 
 regex_t * init_regex(char *token) {
@@ -151,17 +193,15 @@ regex_t * init_regex(char *token) {
 	return re;
 }
 
-char** init_countries() {
+void init_countries(char *countries[]) {
 	/*
 	 * This function initializes an array of pointers that will contain the
 	 * country codes that we need to filtered (i.e. included in the log file)
 	 * We also validate whether the entered country code is a valid country
 	 * code according to the ISO 3166-1 standard.
 	 */
-	countries_count= determine_num_obs(country_input);
-	char **countries = malloc(sizeof(char *) *countries_count);
-	if (limit_country_flag==1) {
-		// fill the array with country_codes
+	// fill the array with country_codes
+	if (country_input != NULL) {
 		char *country_token = strdup(strtok(country_input, comma_delimiter));
 		int i=0;
 		while (country_token != NULL) {
@@ -176,26 +216,52 @@ char** init_countries() {
 			country_token = strtok(NULL, comma_delimiter);
 		}
 	}
-	return countries;
 }
 
-void init_ip_addresses(struct radix_tree_root *tree){
-	ipaddress_count = determine_num_obs(ipaddress_input);
-	int result;
-	if (ip_address_flag==1){
-		char *ip_token = strdup(strtok(ipaddress_input, comma_delimiter));
-		int i=0;
-		while (ip_token!=NULL) {
-			result = radix_tree_insert(tree, i, ip_token);
-			if (result!=0){
-				fprintf(stderr, "Could not create radix-tree.\n");
-				exit(EXIT_FAILURE);
+long convert_ip_to_decimal(char *ip_address){
+	/*
+	 * Given an IP4 address, this can be generalized to IP6, return the decimal value.
+	 */
+	struct in_addr addr;
+	inet_pton(AF_INET, ip_address, &addr);
+	if(&addr.s_addr!=NULL){
+		return addr.s_addr;
+	} else {
+		fprintf(stderr, "Could not convert ip address\n");
+		return -1;
+	}
+}
+
+void init_ip_addresses(Filter *filters){
+	int i=0;
+	char *ipaddress_input_dup = strdup(strtok(ipaddress_input, comma_delimiter));
+	if(strstr(ipaddress_input, "-") ==NULL){
+		// we are not dealing with ip-ranges but just with individual ip adress(es).
+		while (ipaddress_input_dup!=NULL) {
+			filters[i].ip.address_long=  convert_ip_to_decimal(ipaddress_input_dup);
+			i++;
+			ipaddress_input_dup = strtok(NULL, comma_delimiter);
+		}
+	} else {
+		IpMatch = RANGE;
+		// we are dealing with ip-ranges.
+		int j=0;
+		char *ip_address_end;
+		char *ip_address = strdup(strtok_r(ipaddress_input_dup, "-", &ip_address_end));
+		while (ip_address!=NULL){
+			if (j%2==0){
+				filters[i].ip.lbound = convert_ip_to_decimal(ip_address); //inet_addr(ip_address);
+			} else {
+				filters[i].ip.ubound = convert_ip_to_decimal(ip_address);
 			}
+			j++;
+			ip_address = strtok_r(NULL, "-", &ip_address_end);
 		}
 	}
 }
 
-void init_urls(Filter *filters) {
+
+void init_paths(Filter *filters) {
 	/* url_input is a string *excluding* the full qualified domain name
 	 * url_input can be comma delimited, so we first need to determine the
 	 * different parts and then depending on whether the regex_flag is activated
@@ -205,23 +271,28 @@ void init_urls(Filter *filters) {
 	int i=0;
 	int error=0;
 
-	filter_count = determine_num_obs(url_input);
+	num_path_filters = determine_num_obs(url_input, comma_delimiter[0]);
 	url_token = strtok(url_input,comma_delimiter);
+	printf("%s", url_token);
 	while (url_token != NULL) {
-		if (regex_flag == 0){
-			filters[i].path_str =malloc(sizeof(url_token));
-			if (filters[i].path_str) {
+		switch(Search) {
+		case STRING:
+			filters[i].path.string =malloc(sizeof(url_token));
+			if (filters[i].path.string==NULL) {
 				error=1;
 				break;
 			}
-			filters[i].path_str = url_token;
-		} else {
-			filters[i].path_re =malloc(sizeof(regex_t));
-			if (filters[i].path_re==NULL) {
+			filters[i].path.string = url_token;
+			break;
+
+		case REGEX:
+			filters[i].path.regex =malloc(sizeof(regex_t));
+			if (filters[i].path.regex==NULL) {
 				error=1;
 				break;
 			}
-			filters[i].path_re = init_regex(url_token);
+			filters[i].path.regex = init_regex(url_token);
+			break;
 		}
 		i++;
 		url_token = strtok(NULL,comma_delimiter);
@@ -246,25 +317,28 @@ void init_domains(Filter *filters){
 	int i=0;
 	int error=0;
 	char *domain_token;
-
-	domain_count = determine_num_obs(domain_input);
+	num_domain_filters = determine_num_obs(domain_input, comma_delimiter[0]);
 	domain_token = strtok(domain_input, comma_delimiter);
 
 	while (domain_token !=NULL){
-		if (regex_flag == 0){
-			filters[i].domain_str= malloc(sizeof(domain_token));
-			if(filters[i].domain_str==NULL) {
+		switch(Search){
+		case STRING:
+			filters[i].domain.string= malloc(sizeof(domain_token));
+			if(filters[i].domain.string==NULL) {
 				error=1;
 				break;
 			}
-			filters[i].domain_str  = domain_token;
-		}else {
-			filters[i].domain_re= malloc(sizeof(regex_t));
-			if (filters[i].domain_re==NULL){
+			filters[i].domain.string  = domain_token;
+			break;
+
+		case REGEX:
+			filters[i].domain.regex= malloc(sizeof(regex_t));
+			if (filters[i].domain.regex==NULL){
 				error=1;
 				break;
 			}
-			filters[i].domain_re = init_regex(domain_token);
+			filters[i].domain.regex = init_regex(domain_token);
+			break;
 		}
 		i++;
 		domain_token=strtok(NULL, comma_delimiter);
@@ -297,14 +371,33 @@ char *extract_domain(char *url) {
 	return buffer;
 }
 
-int match_ip_address(char *ip, char *ip_filters[]){
-	int result=0;
-	while (ip!=NULL){
+int match_ip_address(char *ip_address,Filter *filters, int num_filters){
+	int i=0;
+	unsigned long ip_address_long = inet_addr(ip_address);
+	switch (IpMatch) {
+		case SIMPLE:
+			for(i=0;i<num_filters;i++){
+				if (ip_address_long == filters[i].ip.address_long){
+					return 1;
+				}
+			}
+			return 0;
+			break;
 
-		ip++;
-	}
-
-	return result;
+		case RANGE:
+			printf("ACTUAL:%ld\tLBOUND:%ld\tUBOUND:%ld\n", ip_address_long, filters[i].ip.lbound,filters[i].ip.ubound);
+			for(i=0;i<num_filters;i++){
+				printf("CHECKING: %i\n", i);
+				if (ip_address_long > filters[i].ip.lbound) {
+					if(ip_address_long < filters[i].ip.ubound){
+						return 1;
+					}
+				}
+			}
+			return 0;
+			break;
+		}
+	return 0;
 }
 
 int match_url(char *url, Filter *filters){
@@ -334,35 +427,33 @@ int match_url(char *url, Filter *filters){
 	 * and finally option 1.
 	 *
 	 */
-	if (no_filter_flag ==1){
-		return 1;
-	}
-
 	int found_domain = 0;
 	char* domain;
 	int j;
 	regmatch_t pmatch[1]; // regex specific variable
 
-	if (domain_count > 0){
+	if (num_domain_filters > 0){
 		/* this for-loop checks if the url contains the domain string
 		 * if it does return 1 if there is no additional filtering, or
 		 * else break to next loop.
 		 */
 		domain =extract_domain(url);
 		if (domain !=NULL){
-			for (j=0; j<domain_count; ++j){
-				if (regex_flag == 0){
-					if (strstr(domain, filters[j].path_str) != NULL) {
+			for (j=0; j<num_domain_filters; ++j){
+				switch(Search){
+				case STRING:
+					if (strstr(domain, filters[j].domain.string) != NULL) {
 						found_domain = 1;
 					}
-				} else {
-					printf("%s\t%p\n", domain, filters[j].domain_re);
-					if (regexec(filters[j].domain_re, domain, 0, pmatch, 0) == 0) {
+					break;
+				case REGEX:
+					if (regexec(filters[j].domain.regex, domain, 0, pmatch, 0) == 0) {
 						found_domain = 1;
 					}
+					break;
 				}
-				if (found_domain != 0){
-					if (filter_count ==0) {
+				if (found_domain == 1){
+					if (num_path_filters ==0) {
 						// No filters have been defined just domain matching.
 						return 1;
 					} else {
@@ -373,7 +464,7 @@ int match_url(char *url, Filter *filters){
 		}
 	}
 
-	if (filter_count > 0) {
+	if (num_path_filters > 0) {
 		/*
 		 * this for loop checks if the url contains the path from the command
 		 * line.If it finds a match then return 1 else return 0.
@@ -383,28 +474,32 @@ int match_url(char *url, Filter *filters){
 		char* path = strtok(url, ws_delimiter);
 
 		if (path!=NULL){
-			for (i = 0; i < filter_count; ++i) {
-				if (regex_flag ==0) {
-					if (strstr(path, filters[i].path_str)!=NULL){
-						path_found =1;
-					}
-				} else {
-					if (regexec(filters[i].path_re, path, 0, pmatch, 0) == 0) {
-						path_found =1;
-					}
+			for (i = 0; i < num_path_filters; ++i) {
+				switch (Search){
+					case STRING:
+						if (strstr(path, filters[i].path.string)!=NULL){
+							path_found =1;
+						}
+						if (verbose_flag){
+							fprintf(stderr, "%s<-->%s\t%d\n", path, filters[i].path.string, path_found);
+						}
+						break;
+
+
+					case REGEX:
+						if (regexec(filters[i].path.regex, path, 0, pmatch, 0) == 0) {
+							path_found =1;
+						}
+
+						if (verbose_flag){
+							fprintf(stderr, "%s<-->%p\t%d\n", path, &filters[i].path.regex, path_found);
+						}
+						break;
 				}
 
-				if (verbose_flag){
-					if (regex_flag ==0){
-						fprintf(stderr, "%s<-->%s\t%d\n", path, filters[i].path_str, path_found);
-					} else {
-						fprintf(stderr, "%s<-->%p\t%d\n", path, &filters[i].path_re, path_found);
-					}
-				}
-				return path_found;
 			}
+			return path_found;
 		}
-		return 0;
 	}
 	return 0;
 }
@@ -434,7 +529,6 @@ int geo_check(const char *country_code, char *countries[]) {
 		}
 	}
 	return 0;
-
 }
 
 void replace_ip_addr(char *fields[], const char* country_code){
@@ -445,7 +539,8 @@ void replace_ip_addr(char *fields[], const char* country_code){
 	 * generated by geocode_lookup.
 	 * The returning value is a line with the replaced ip address.
 	 */
-	if (geocode_flag){
+	switch (Recode){
+	case GEO:
 		if (country_code != NULL){
 			static char cc[10];
 			if (strlen(country_code) < sizeof(cc)) {
@@ -457,16 +552,42 @@ void replace_ip_addr(char *fields[], const char* country_code){
 		} else {
 			fields[4] = unknown_geography;
 		}
-	} else if (anonymize_flag) {
+		break;
+
+	case ANONYMIZE:
 		fields[4] = anonymous_ip;
+		break;
+
+	case NO:
+		break;
+	}
+}
+
+void free_memory(Filter *filters, int num_filters) {
+	int i;
+	for(i=0;i<num_filters; i++){
+		if (Screen == URL_FILTER){
+			switch (Search){
+			case STRING:
+				free(filters[i].domain.string);
+				free(filters[i].path.string);
+				break;
+
+			case REGEX:
+				free(filters[i].domain.regex);
+				free(filters[i].path.regex);
+				break;
+			}
+			break;
+		}
+
 	}
 }
 
 void parse() {
-	int country_check;
+	// GENERIC VARIABLES
+	char *fields[num_fields];	//the number of fields we expect in a single line
 	int num_filters;
-	int num_paths = determine_num_obs(url_input);
-	int num_domains = determine_num_obs(domain_input);
 
 	int i;
 	int j;
@@ -476,37 +597,31 @@ void parse() {
 	char *url;
 	char *valid_url_start = "http";
 
-
-	//RADIX_TREE_INIT();
-	struct radix_tree_root tree = RADIX_TREE_INIT();
-	//INIT_RADIX_TREE(tree);
-	init_ip_addresses(&tree);
-
-
-	GeoIP *gi;
-
-	char *fields[num_fields];
-	char** countries = init_countries();
-
-
-	if (num_paths>num_domains){
-		num_filters= num_paths;
-	} else if (num_paths < num_domains){
-		num_filters= num_domains;
-	} else {
-		num_filters = num_domains;
-	}
-
-
+	// URL_FILTER INITIALIZATION
+	int num_filters_arr[3] = {};
+	num_filters_arr[0] = determine_num_obs(url_input,comma_delimiter[0]);
+	num_filters_arr[1] = determine_num_obs(domain_input,comma_delimiter[0]);
+	num_filters_arr[2] = determine_num_obs(ipaddress_input, comma_delimiter[0]);
+	num_filters = determine_max_array(num_filters_arr, 3);
 	Filter filters[num_filters];
-	init_urls(filters);
-	init_domains(filters);
 
 	if (verbose_flag){
-		fprintf(stderr, "filter_count:%d\tdomain_count:%d\tcountries_count:%d\n", filter_count, domain_count, countries_count);
+		fprintf(stderr, "num_path_filters:%d\tnum_domain_filters:%d\tcountries_count:%d\t ip_address_count:%d\n", num_filters_arr[0], num_filters_arr[1], countries_count, num_filters_arr[2]);
 	}
 
-	if (geocode_flag){
+	if (Screen == URL_FILTER){
+		init_paths(filters);
+		init_domains(filters);
+	}
+
+	// GEO_FILTER INITIALIZATION
+	GeoIP *gi;
+	countries_count= determine_num_obs(country_input, comma_delimiter[0]);
+	char* countries[countries_count];
+	const char *country_code;
+
+	if (Screen == GEO_FILTER || Recode == GEO) {
+		init_countries(countries);
 		/*
 		 *  Before changing the type of cache, have a look at this benchmark:
 		 *  http://www.maxmind.com/app/benchmark
@@ -519,6 +634,11 @@ void parse() {
 			exit(1);
 		}
 	}
+
+	// IP_FILTER INITIALIZATION
+	if (Screen == IP_FILTER){
+			init_ip_addresses(filters);
+		}
 
 	while (!feof(stdin)) {
 		int found =0;
@@ -549,38 +669,51 @@ void parse() {
 		url = fields[8];
 
 		if (url != NULL) {
-			//make sure we are dealing with a url that starts with http
-			if (strncmp(url, valid_url_start, 4) == 0) {
-				found = match_url(url, filters);
+			switch(Screen){
+			case NO_FILTER:
+				found=1;
+				break;
+
+			case IP_FILTER: case URL_IP_FILTER:
+				found = match_ip_address(ipaddr, filters, num_filters);
+				break;
+
+			case URL_FILTER:
+				//make sure we are dealing with a url that starts with http
+				if (strncmp(url, valid_url_start, 4) == 0) {
+					found = match_url(url, filters);
+				}
+				break;
+
+			case GEO_FILTER : case URL_GEO_FILTER: case IP_GEO_FILTER: case IP_GEO_URL_FILTER:
+				country_code = geo_lookup(gi, ipaddr);
+				found = geo_check(country_code, countries);
+				if (verbose_flag){
+					fprintf(stderr, "Geocode result: %s\n", country_code);
+				}
+				break;
 			}
 		}
 
 		if (found > 0){
-			if (geocode_flag==1 || limit_country_flag ==1) {
-				if (ipaddr !=NULL) {
-					const char *country_code = geo_lookup(gi, ipaddr);
-					if (verbose_flag){
-						fprintf(stderr, "Geocode result: %s\n", country_code);
-					}
+			switch(Recode) {
+				case NO:
+					break;
 
-					if (limit_country_flag==1) {
-						// check if the country associated with the ip address
-						// is in the whitelist set of countries
-						country_check = geo_check(country_code, countries);
-						if (country_check == 0){
-							continue;
-						}
+				case ANONYMIZE:
+					//Apply the anonymization
+					replace_ip_addr(fields, NULL);
+					break;
+
+				case GEO:
+					// Apply the geocoding
+					if (country_code == NULL){
+						country_code = geo_lookup(gi, ipaddr);
 					}
-					if (geocode_flag ==1 ){
-						// Apply the geocoding
-						replace_ip_addr(fields, country_code);
-					}
-				}
+					replace_ip_addr(fields, country_code);
+					break;
 			}
-			else if (anonymize_flag==1){
-				// Apply the anonymization
-				replace_ip_addr(fields, NULL);
-			}
+
 			// print output to stdout
 			for (i=0;i<num_fields;++i){
 				if (i!=0){
@@ -588,6 +721,7 @@ void parse() {
 				}
 				fputs(fields[i], stdout);
 			}
+
 		}
 
 		if (verbose_flag) {
@@ -595,9 +729,7 @@ void parse() {
 		}
 
 	}
-	//free(domains);
-	free(countries);
-	//free(urls);
+	free_memory(filters, num_filters);
 }
 
 
@@ -605,20 +737,20 @@ void usage() {
 	printf("Wikimedia's generic UDP filtering system.\n");
 	printf("Version 0.2 // Written by Diederik van Liere.\n");
 	printf("\n");
-	printf("Either --url or --project are mandatory (you can use them both, the other command line parameters are optional:\n");
-	printf("-u or --url:          the string or multiple strings separated by a comma that indicate what you want to match.\n");
-	printf("-p or --project:      the part of the domain name that you want to match. For example, 'en.m.' would match all English mobile Wikimedia projects.\n");
+	printf("Either --path or --domain are mandatory (you can use them both, the other command line parameters are optional:\n");
+	printf("-p or --path:         the string or multiple strings separated by a comma that indicate what you want to match.\n");
+	printf("-d or --domain:       the part of the domain name that you want to match. For example, 'en.m.' would match all English mobile Wikimedia projects.\n");
 	printf("\n");
 	printf("-g or --geocode:      flag to indicate geocode the log, by default turned off.\n");
-	printf("-a or --anonymize:    flag to indicate anonymize the log, by default turned off\n");
-	printf("-i or --ip:           flag to indicate anonymize the log, by default turned off\n");
+	printf("-a or --anonymize:    flag to indicate anonymize the log, by default turned off.\n");
+	printf("-i or --ip:           flag to indicate ip-filter the log, by default turned off. You can supply comma separated ip adresses, or comma-separated ip-ranges.\n");
 	printf("\n");
-	printf("-d or --database:     specify alternative path to MaxMind database.\n");
+	printf("-m or --maxmind:     specify alternative path to MaxMind database.\n");
 	printf("Current path to database: %s\n", db_path);
 	printf("\n");
 	printf("-c or --country_list: limit the log to particular countries, this should be a comma separated list of country codes. Valid country codes are the ISO 3166 country codes (see http://www.maxmind.com/app/iso3166). \n");
 	printf("-r or --regex:        the parameters -p and -u are interpreted as regular expressions. Regular expression searching is probably slower so substring matching is recommended.\n");
-	printf("-f or --force:        do not match on either domain or url part, basically turn filtering off. Can be useful when filtering for specific country.");
+	printf("-f or --force:        do not match on either domain, path, or ip address, basically turn filtering off. Can be useful when filtering for specific country.");
 	printf("\n");
 	printf("-v or --verbose:      output detailed debug information to stderr, not recommended in production.\n");
 	printf("-h or --help:         show this menu with all command line options.\n");
@@ -626,11 +758,11 @@ void usage() {
 
 int main(int argc, char **argv){
 	static struct option long_options[] = {
-			{"url", required_argument, NULL, 'u'},
-			{"project", required_argument, NULL, 'p'},
+			{"path", required_argument, NULL, 'p'},
+			{"domain", required_argument, NULL, 'd'},
 			{"geocode", no_argument, NULL, 'g'},
 			{"anonymize", no_argument, NULL, 'a'},
-			{"database", required_argument, NULL, 'd'},
+			{"maxmind", required_argument, NULL, 'm'},
 			{"country_list", required_argument, NULL, 'c'},
 			{"regex", no_argument, NULL, 'r'},
 			{"verbose", no_argument, NULL, 'v'},
@@ -642,32 +774,41 @@ int main(int argc, char **argv){
 
 	int c;
 
-	while((c = getopt_long(argc, argv, "u:p:gad:c:vhrfi:", long_options, NULL)) != -1) {
-		// we accept -u, -p, -d and -c have mandatory arguments
+	while((c = getopt_long(argc, argv, "ac:d:m:fghi:rp:v", long_options, NULL)) != -1) {
+		// c,d,m,i,p have mandatory arguments
 		switch(c)
 		{
 		case 'a':
-			anonymize_flag = 1;
+			Recode = ANONYMIZE;
 			/* Indicate whether we should anonymize the log, default is false */
 			break;
 
 		case 'c':
 			country_input = optarg;
-			limit_country_flag = 1;
+			Screen +=GEO_FILTER;
 			/* Optional list of countries to restrict logging */
 			break;
 
 		case 'd':
+			Screen += URL_FILTER;
+			domain_input = optarg;
+			required_args++;
+			/* -d is set. This specifies the project: en.wikipedia, commons.
+			 * it should be a part of the domain name
+			 */
+			break;
+
+		case 'm':
 			db_path = optarg;
 			/* Optional alternative path to database. */
 			break;
 
 		case 'f':
-			no_filter_flag =1;
+			Screen = NO_FILTER;
 			break;
 
 		case 'g':
-			geocode_flag = 1;
+			Recode = GEO;
 			/* Indicate whether we should do geocode, default is false */
 			break;
 
@@ -676,39 +817,35 @@ int main(int argc, char **argv){
 			break;
 
 		case 'i':
-			ip_address_flag = 1;
+			Screen += IP_FILTER;
 			ipaddress_input = optarg;
-			break;
-
-		case 'p':
-			domain_input = optarg;
 			required_args++;
-			/* -p is set. This specifies the project: en.wikipedia, commons.
-			 * it should be a part of the domain name
-			 */
 			break;
 
 		case 'r':
-			regex_flag =1;
-			/* indicate whether we should treat the search string as a regular expression or not, default is false */
+			/* indicate whether we should treat the search string as a regular
+			 * expression or not, default is false
+			 */
+			Search=REGEX;
 			break;
 
-		case 'u':
+		case 'p':
+			/* -p is set. Store the url that needs to be matched. */
+			Screen = URL_FILTER;
 			url_input = optarg;
 			required_args++;
-			/* -u is set. Store the url that needs to be matched. */
 			break;
 
 		case 'v':
-			verbose_flag = 1;
 			/* Turn verbose on */
+			verbose_flag = 1;
 			break;
 
 		default:
 			exit(-1);
 		}
 	}
-	if (required_args>=1 || no_filter_flag==1){
+	if (required_args>=1 || Screen==NO_FILTER){
 		parse();
 	} else{
 		usage();

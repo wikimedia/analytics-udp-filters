@@ -1,2 +1,10 @@
-Initial Release, no news.
+V 0.2 Valentine's Day
+	* Regex support
+	* IP address filtering
+	* Refactoring large parts of code
+
+V 0.1 Initial Release
+	* filtering by domain
+	* filtering by path
+	* filtering by country
 

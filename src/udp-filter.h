@@ -17,6 +17,7 @@
  */
 
 #include "countries.c"
+#include "iprange.c"
 
 int verify_country_code(char *country_code);
 extern const char country_code_array[253][3];
