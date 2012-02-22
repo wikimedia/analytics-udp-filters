@@ -46,7 +46,7 @@ CONFIG_CLEAN_FILES =
 am__installdirs = "$(DESTDIR)$(bindir)"
 binPROGRAMS_INSTALL = $(INSTALL_PROGRAM)
 PROGRAMS = $(bin_PROGRAMS)
-am_udp_filter_OBJECTS = udp-filter.$(OBJEXT)
+am_udp_filter_OBJECTS = udp-filter.$(OBJEXT) countries.$(OBJEXT)
 udp_filter_OBJECTS = $(am_udp_filter_OBJECTS)
 udp_filter_DEPENDENCIES =
 DEFAULT_INCLUDES = -I.
@@ -155,7 +155,7 @@ sysconfdir = ${prefix}/etc
 target_alias = 
 top_builddir = .
 top_srcdir = .
-udp_filter_SOURCES = src/udp-filter.c
+udp_filter_SOURCES = src/udp-filter.c src/udp-filter.h src/countries.c src/countries.h
 AM_CPPFLAGS = $(GEOIP_CFLAGS) -g
 udp_filter_LDADD = $(GEOIP_LIBS) $(DEPS_LIBS) -lGeoIP
 all: all-am
@@ -228,6 +228,7 @@ mostlyclean-compile:
 distclean-compile:
 	-rm -f *.tab.c
 
+include ./$(DEPDIR)/countries.Po
 include ./$(DEPDIR)/udp-filter.Po
 
 .c.o:
@@ -257,6 +258,20 @@ udp-filter.obj: src/udp-filter.c
 #	source='src/udp-filter.c' object='udp-filter.obj' libtool=no \
 #	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
 #	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o udp-filter.obj `if test -f 'src/udp-filter.c'; then $(CYGPATH_W) 'src/udp-filter.c'; else $(CYGPATH_W) '$(srcdir)/src/udp-filter.c'; fi`
+
+countries.o: src/countries.c
+	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT countries.o -MD -MP -MF $(DEPDIR)/countries.Tpo -c -o countries.o `test -f 'src/countries.c' || echo '$(srcdir)/'`src/countries.c
+	mv -f $(DEPDIR)/countries.Tpo $(DEPDIR)/countries.Po
+#	source='src/countries.c' object='countries.o' libtool=no \
+#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o countries.o `test -f 'src/countries.c' || echo '$(srcdir)/'`src/countries.c
+
+countries.obj: src/countries.c
+	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT countries.obj -MD -MP -MF $(DEPDIR)/countries.Tpo -c -o countries.obj `if test -f 'src/countries.c'; then $(CYGPATH_W) 'src/countries.c'; else $(CYGPATH_W) '$(srcdir)/src/countries.c'; fi`
+	mv -f $(DEPDIR)/countries.Tpo $(DEPDIR)/countries.Po
+#	source='src/countries.c' object='countries.obj' libtool=no \
+#	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) \
+#	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o countries.obj `if test -f 'src/countries.c'; then $(CYGPATH_W) 'src/countries.c'; else $(CYGPATH_W) '$(srcdir)/src/countries.c'; fi`
 
 ID: $(HEADERS) $(SOURCES) $(LISP) $(TAGS_FILES)
 	list='$(SOURCES) $(HEADERS) $(LISP) $(TAGS_FILES)'; \
