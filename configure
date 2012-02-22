@@ -4197,7 +4197,7 @@ done
 
 
 
-for ac_header in GeoIP.h
+for ac_header in GeoIPCity.h
 do
 as_ac_Header=`echo "ac_cv_header_$ac_header" | $as_tr_sh`
 if { as_var=$as_ac_Header; eval "test \"\${$as_var+set}\" = set"; }; then
@@ -4331,7 +4331,9 @@ if test `eval echo '${'$as_ac_Header'}'` = yes; then
   cat >>confdefs.h <<_ACEOF
 #define `echo "HAVE_$ac_header" | $as_tr_cpp` 1
 _ACEOF
- udp_filter_found_int_headers=yes; break;
+ GeoIP.h
+else
+  udp_filter_found_int_headers=yes; break;
 fi
 
 done

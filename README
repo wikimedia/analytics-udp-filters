@@ -55,34 +55,25 @@ This new filter system replaces the old collection of filters written in C.
 
 =Command line arguments=
 The following is a list of valid command line parameters. 
-	
-Either -url or -project are mandatory (you can also use them both), the other 
-command line parameters are optional:
 
--u or --url:          the string or multiple strings separated by a comma that 
-indicate what you want to match.
+Either --path or --domain are mandatory (you can use them both, the other command line parameters are optional:
+-p or --path:         the string or multiple strings separated by a comma that indicate what you want to match.
+-d or --domain:       the part of the domain name that you want to match. For example, 'en.m.' would match all English mobile Wikimedia projects.
 
--p or --project:      the part of the domain name that you want to match. 
-For example, 'en.m.' would match all English mobile Wikimedia projects.
-	
 -g or --geocode:      flag to indicate geocode the log, by default turned off.
+-b or --bird:         parameter that is mandatory when specifying -g or --geocode. Valid choices are <country>, <region> and <city>.
+-a or --anonymize:    flag to indicate anonymize the log, by default turned off.
+-i or --ip:           flag to indicate ip-filter the log, by default turned off. You can supply comma separated ip adresses, or comma-separated ip-ranges.
 
--a or --anonymize:    flag to indicate anonymize the log, by default turned off
+-m or --maxmind:     specify alternative path to MaxMind database.
 
--d or --database:     specify alternative path to MaxMind database. Please use
-the Country database, the City database is not yet supported.
+-c or --country_list: limit the log to particular countries, this should be a comma separated list of country codes. Valid country codes are the ISO 3166 country codes (see http://www.maxmind.com/app/iso3166). 
+-r or --regex:        the parameters -p and -u are interpreted as regular expressions. Regular expression searching is probably slower so substring matching is recommended.
+-f or --force:        do not match on either domain, path, or ip address, basically turn filtering off. Can be useful when filtering for specific country.
 
--c or --country_list: limit the log to particular countries, this should be a 
-comma separated list of country codes. Valid country codes are the ISO 3166 
-country codes (see http://www.maxmind.com/app/iso3166). 
-
--f or --force:        do not match on either domain or url part, basically turn 
-filtering off. Can be useful when filtering for a specific country.
-	
--v or --verbose:      output detailed debug information, not recommended in 
-production. Output is sent to stderr.
-
+-v or --verbose:      output detailed debug information to stderr, not recommended in production.
 -h or --help:         show this menu with all command line options.
+	
 
 For options -u, -p and -c you can enter multiple values if you separate them by 
 a comma.
@@ -90,43 +81,43 @@ a comma.
 =Examples=
 
 
-./udp_filter -p en.wikipedia            this will log all pageviews (depending 
+./udp_filter -d en.wikipedia            this will log all pageviews (depending 
 on the sampling rate) if the domain contains en.wikipedia
 
-./udp_filter -u SOPO                    this will log all pageviews (depending 
+./udp_filter -p SOPO                    this will log all pageviews (depending 
 on the sampling rate) when the url (excluding the domain name) contains SOPA.
 So this will collect SOPA *across* projects.
 
-./udp_filter -p en.wikipedia -u SOPA	this will log all pageviews (depending 
+./udp_filter -d en.wikipedia -p SOPA	this will log all pageviews (depending 
 on the sampling rate) where the domain contains en.wikipedia and the url 
 contains SOPA.
 
-./udp_filter -p en.wikipedia -u SOPA,PIPA   this will log all pageviews (
+./udp_filter -d en.wikipedia -p SOPA,PIPA   this will log all pageviews (
 depending on the sampling rate) where the domain contains en.wikipedia and the 
 url contains either SOPA or PIPA.
 
-./udp_filter -p en.wikipedia -a	        this will log all pageviews (depending 
+./udp_filter -d en.wikipedia -a	        this will log all pageviews (depending 
 on the sampling rate) if the domain contains en.wikipedia and replace the 
 ip address of the visitor with 0.0.0.0
 
-./udp_filter -p en.wikipedia -g         this will log all pageviews (depending 
+./udp_filter -d en.wikipedia -g         this will log all pageviews (depending 
 on the sampling rate) if the domain contains en.wikipedia and replace the 
 ip address of the visitor with the country code. See for a list of all the 
 valid country codes: http://www.maxmind.com/app/iso3166
 
-./udp_filter -p en.wikipedia -g -c BA   this will log all pageviews (depending 
+./udp_filter -d en.wikipedia -g -c BA   this will log all pageviews (depending 
 on the sampling rate) if the domain contains en.wikipedia and replace the ip 
 address of the visitor with the country code. In addition, only hits from Brasil 
 (BA) will be logged.
 
-./udp_filter -p en.wikipedia -d GeoIP.dat   this specifies an alternative path 
+./udp_filter -d en.wikipedia -g -m GeoIP.dat   this specifies an alternative path 
 for the MaxMind database and this  will log all pageviews (depending 
 on the sampling rate) if the domain contains en.wikipedia.
 
-./udp_filter -p en.wikipedia -u SOPA -c US  this will log all pageviews 
+./udp_filter -d en.wikipedia -p SOPA -c US  this will log all pageviews 
 (depending on the sampling rate) where the domain contains en.wikipedia and 
 the url contains SOPA and the visitor comes from the US. 
 
-./udp_filter -p en.wikipedia -v         this turns on verbose logging and can 
+./udp_filter -d en.wikipedia -v         this turns on verbose logging and can 
 help in debugging and verifying that the appropriate hits are being logged.
 This setting is not recommended in production.

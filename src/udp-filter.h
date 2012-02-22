@@ -43,6 +43,16 @@ typedef enum RecodeType{
 	ANONYMIZE, // current ip adddress should be replaced with 0.0.0.0
 }RecodeType;
 
+<<<<<<< HEAD
+=======
+typedef enum BirdType{
+	COUNTRY,   // Quite obvious, geocoding at the country level.
+	REGION,    // This is country-specific, usually it's a province or state.
+	CITY,      // Geocoding at the city, this should be used with the necessary precautions.
+	LON_LAT,   // Geocode to longitude latitude
+}BirdType;
+
+>>>>>>> Improvements:
 typedef struct {
 	char *address;
 	long address_long;

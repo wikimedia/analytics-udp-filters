@@ -53,11 +53,15 @@ char unknown_geography[] = "XX";
 const char comma_delimiter[] =",";
 const char ws_delimiter[] = " ";
 const char fs_delimiter[] = "/";
+const char us_delimiter[] = "_";
 const int num_fields =14;
+const int unknown_geography_length =2;
 const int num_predefined_filters = (GEO_FILTER - NO_FILTER) +1;
 int verbose_flag = 0;       // this flag indicates whether we should output detailed debug messages, default is off.
 
-char *db_path = "/var/log/squid/filters/GeoIPLibs/GeoIP.dat";
+char *db_country_path = "/var/log/squid/filters/GeoIPLibs/GeoIP.dat";
+char *db_city_path = "/var/log/squid/filters/GeoIPLibs/GeoIPCity.dat";
+char *db_region_path = "/var/log/squid/filters/GeoIPLibs/GeoIPRegion.dat";
 
 SearchType search = STRING;
 RecodeType recode = NO;
@@ -108,17 +112,13 @@ int determine_num_obs(char *raw_input, char delimiter) {
 	return size;
 }
 
-int determine_max_array(int a[], int num_elements) {
-	/*
-	 * Give an array, return the max value of the array.
-	 */
-	int i, max=-1;
-	for (i=0; i<num_elements; i++) {
-		if (a[i]>max) {
-			max=a[i];
+void replace_space_with_underscore(char *string, int len){
+	int i;
+	for (i=0;i<len; i++){
+		if(string[i]== ' ') {
+			string[i] = '_';
 		}
 	}
-	return(max);
 }
 
 regex_t * init_regex(char *token) {
@@ -179,7 +179,6 @@ long convert_ip_to_long(char *ip_address, int initialization){
 	 * Given an IP (4 or 6) address return the long value.
 	 */
 	struct addrinfo *addr;
-	//memset(&addr, 0, sizeof(addr));
 	char *ip_address_dup = strdup(ip_address);
 	int result = getaddrinfo(ip_address_dup, NULL,NULL, &addr);
 	if (result==0){
@@ -199,6 +198,7 @@ long convert_ip_to_long(char *ip_address, int initialization){
 			 *  as an array of sixteen 8-bit elements, that together make up a
 			 *  single 128-bit IPv6 address. (ipv6->sin6_addr.__u6_addr;)
 			 *  Implementation is not finished.
+			 *  TODO: Add byte-by-byte comparison
 			 */
 			fprintf(stderr,"IP6 address filtering is not yet implemented.\n");
 			free(ipv6);
@@ -350,6 +350,23 @@ void init_domains(Filter *filters, char *domain_input){
 	}
 }
 
+int init_bird_level(char *bird){
+	int result;
+	if(strcmp(bird,"country")==0) {
+		result = COUNTRY;
+	} else if (strcmp(bird,"region")==0) {
+		result = REGION;
+	} else if (strcmp(bird,"city")==0) {
+		result = CITY;
+	} else if (strcmp(bird, "lonlat")==0){
+		result = LON_LAT;
+	} else {
+		fprintf(stderr, "%s is not a valid option for geocoding. <country>, <region>, <city> or <lonlat> (without the <> are valid choices).\n", bird);
+		exit(EXIT_FAILURE);
+	}
+	return result;
+}
+
 char *extract_domain(char *url) {
 	if (url==NULL){
 		return NULL;
@@ -446,6 +463,20 @@ int match_path(char *url, Filter *filters, int num_path_filters){
 							fprintf(stderr, "%s<-->%p\t%d\n", path, &filters[i].path.regex, path_found);
 						}
 					}
+					if (verbose_flag){
+						if (result>0) {
+							char errbuf[MAX_ERROR_MSG];
+							regerror(result, filters[i].path.regex, errbuf, MAX_ERROR_MSG);
+							fprintf(stderr, "Encountered error while regex matching: %s\n", errbuf);
+						} else {
+							fprintf(stderr, "%s<-->%p\t%d\n", path, &filters[i].path.regex, path_found);
+						}
+					}
+				}
+				break;
+
+				default:
+					break;
 				}
 				break;
 
@@ -512,14 +543,77 @@ int match_domain(char *url, Filter *filters, int num_domain_filters){
 }
 
 
-const char *geo_lookup(GeoIP *gi, char *ipaddr) {
+char *geo_lookup(GeoIP *gi, char *ipaddr, int bird) {
 	/*
 	 * Lookup the country_code by ip address, we can
 	 * extend this in the future with more granular data
 	 * such as region,city or even zipcode.
 	 */
-	const char *country_code= GeoIP_country_code_by_addr(gi, ipaddr);
-	return country_code;
+	int max_buf_length= 100;
+	char *area = malloc(max_buf_length);
+
+	switch(bird){
+		case COUNTRY: {
+			const char *country= GeoIP_country_code_by_addr(gi, ipaddr);
+			if (country==NULL){
+				strcpy(area, unknown_geography);
+			} else {
+				strcpy(area, country);
+			}
+
+			}
+			break;
+
+		case REGION:{
+			GeoIPRegion *gir;
+			gir=GeoIP_region_by_addr(gi,ipaddr);
+			if(strlen(gir->region)==0){
+				area= unknown_geography;
+			} else {
+				area=gir->region;
+			}
+
+			GeoIPRegion_delete(gir);
+			}
+			break;
+
+		case CITY:{
+			GeoIPRecord *grecord;
+			grecord = GeoIP_record_by_addr(gi, ipaddr);
+			if (grecord !=NULL){
+				if (grecord->city == NULL){
+					strcpy(area, unknown_geography);
+				} else {
+					int len = strlen(grecord->city);
+					strcpy(area,grecord->city);
+					replace_space_with_underscore(area, len);
+				}
+				GeoIPRecord_delete(grecord);
+			} else {
+				area = malloc(unknown_geography_length*sizeof(char));
+				strcpy(area, unknown_geography);
+			}
+			break;
+		}
+
+		case LON_LAT: {
+			GeoIPRecord *grecord;
+			grecord = GeoIP_record_by_addr(gi, ipaddr);
+			if (grecord!=NULL){
+				int length = 0;
+				length += snprintf(area+length, max_buf_length, "%f", grecord->longitude);
+				length += snprintf(area+length, max_buf_length, "%s", ":");
+				length += snprintf(area+length, max_buf_length, "%f", grecord->latitude);
+			} else {
+				area = unknown_geography;
+			}
+		}
+		break;
+
+		default:
+			break;
+	}
+	return area;
 }
 
 int geo_check(const char *country_code, char *countries[], int countries_count) {
@@ -538,7 +632,7 @@ int geo_check(const char *country_code, char *countries[], int countries_count) 
 	return 0;
 }
 
-void replace_ip_addr(char *fields[], const char* country_code){
+void replace_ip_addr(char *fields[], char* area){
 	/*
 	 * The purpose of this function is to replace the original ip address from
 	 * line (where line is the original input as read from STDIN with
@@ -548,18 +642,7 @@ void replace_ip_addr(char *fields[], const char* country_code){
 	 */
 	switch (recode){
 	case GEO:
-		if (country_code != NULL){
-			//Could this be the source of a small memory leak?
-			static char cc[3];
-			if (strlen(country_code) < sizeof(cc)) {
-				strcpy(cc, country_code);
-			} else {
-				strcpy(cc, unknown_geography);
-			}
-			fields[4] = cc;
-		} else {
-			fields[4] = unknown_geography;
-		}
+		fields[4]= area;
 		break;
 
 	case ANONYMIZE:
@@ -605,10 +688,10 @@ void free_memory(Filter *filters, char *path_input, char *domain_input, int num_
 			}
 			break;
 		}
-
 	}
 }
-void parse(char *country_input, char *path_input, char *domain_input, char *ipaddress_input) {
+
+void parse(char *country_input, char *path_input, char *domain_input, char *ipaddress_input, char *bird, char *db_path) {
 	// GENERIC VARIABLES
 	char *fields[num_fields];	//the number of fields we expect in a single line
 	int num_filters =0;
@@ -617,6 +700,7 @@ void parse(char *country_input, char *path_input, char *domain_input, char *ipad
 	int num_ipaddress_filters=0;
 	int num_countries_filters=0;
 	int required_hits =0;
+	int bird_int = 0;
 	int i;
 	int j;
 	int n;
@@ -625,7 +709,7 @@ void parse(char *country_input, char *path_input, char *domain_input, char *ipad
 	char *ipaddr;
 	char *url;
 
-	// FILTER INITIALIZATION
+	// DETERMINE NUMBER OF FILTERS
 	for(n=0; n<num_predefined_filters; n++){
 		switch (n) {
 		case 0: // NO_FILTER
@@ -673,7 +757,7 @@ void parse(char *country_input, char *path_input, char *domain_input, char *ipad
 	// GEO_FILTER INITIALIZATION
 	GeoIP *gi;
 	char* countries[num_countries_filters];
-	const char *country_code;
+	char *area;
 
 	// FILTER INITIALIZATION
 	for(n=0; n<num_predefined_filters; n++){
@@ -704,17 +788,55 @@ void parse(char *country_input, char *path_input, char *domain_input, char *ipad
 		case 4: // GEO_FILTER
 			if(params[n] ==1){
 				init_countries(countries, country_input, num_countries_filters);
+				bird_int = init_bird_level(bird);
 				/*
 				 *  Before changing the type of cache, have a look at this benchmark:
 				 *  http://www.maxmind.com/app/benchmark
 				 *  and choose wisely.
 				 */
-				printf("YES");
-				gi = GeoIP_open(db_path, GEOIP_MEMORY_CACHE);
+				switch(bird_int){
+				case COUNTRY:
+					if(db_path!=NULL){
+						db_country_path=db_path;
+					}
+					gi = GeoIP_open(db_country_path, GEOIP_MEMORY_CACHE);
+					break;
+
+				case REGION:
+					if(db_path!=NULL){
+						db_region_path=db_path;
+					}
+					gi = GeoIP_open(db_region_path, GEOIP_MEMORY_CACHE);
+					break;
+
+				case CITY:
+					if(db_path!=NULL){
+						db_city_path=db_path;
+					}
+					gi = GeoIP_open(db_city_path, GEOIP_MEMORY_CACHE);
+					break;
+
+				case LON_LAT:
+					if(db_path!=NULL){
+						db_city_path=db_path;
+					}
+					gi = GeoIP_open(db_city_path, GEOIP_MEMORY_CACHE);
+					break;
+				}
+
 				if (gi == NULL) {
 					fprintf(stderr, "Error opening MaxMind Geo database.\n");
-					fprintf(stderr, "Path used:%s\n", db_path);
+					fprintf(stderr, "Path used for country database:%s\n", db_country_path);
+					fprintf(stderr, "Path used for region database:%s\n", db_region_path);
+					fprintf(stderr, "Path used for city database:%s\n", db_city_path);
 					exit(EXIT_FAILURE);
+				} else {
+					if(verbose_flag){
+						char *db_info =GeoIP_database_info(gi);
+						unsigned char db_edition = GeoIP_database_edition(gi);
+						GeoIPDBTypes geodbtype = (GeoIPDBTypes)db_info;
+						fprintf(stderr,"Maxmind database: %i; version: %i\n", db_edition, geodbtype);
+					}
 				}
 			}
 			break;
@@ -790,10 +912,10 @@ void parse(char *country_input, char *path_input, char *domain_input, char *ipad
 
 				case 4: //GEO_FILTER:
 					if (params[n] == 1){
-						country_code = geo_lookup(gi, ipaddr);
-						found += geo_check(country_code, countries, num_countries_filters);
+						area = geo_lookup(gi, ipaddr, bird_int);
+						found += geo_check(area, countries, num_countries_filters);
 						if (verbose_flag){
-							fprintf(stderr, "IP address: %s was geocoded as: %s\n", ipaddr, country_code);
+							fprintf(stderr, "IP address: %s was geocoded as: %s\n", ipaddr, area);
 						}
 					}
 					break;
@@ -813,10 +935,10 @@ void parse(char *country_input, char *path_input, char *domain_input, char *ipad
 
 			case GEO:
 				// Apply the geocoding
-				if (country_code == NULL){
-					country_code = geo_lookup(gi, ipaddr);
+				if (area == NULL){
+					area = geo_lookup(gi, ipaddr, bird_int);
 				}
-				replace_ip_addr(fields, country_code);
+				replace_ip_addr(fields, area);
 				break;
 			}
 			// print output to stdout
@@ -846,11 +968,13 @@ void usage() {
 	printf("-d or --domain:       the part of the domain name that you want to match. For example, 'en.m.' would match all English mobile Wikimedia projects.\n");
 	printf("\n");
 	printf("-g or --geocode:      flag to indicate geocode the log, by default turned off.\n");
+	printf("-b or --bird:         parameter that is mandatory when specifying -g or --geocode. Valid choices are <country>, <region>, <city> and <lonlat>.\n");
 	printf("-a or --anonymize:    flag to indicate anonymize the log, by default turned off.\n");
 	printf("-i or --ip:           flag to indicate ip-filter the log, by default turned off. You can supply comma separated ip adresses, or comma-separated ip-ranges.\n");
 	printf("\n");
 	printf("-m or --maxmind:     specify alternative path to MaxMind database.\n");
-	printf("Current path to database: %s\n", db_path);
+	printf("Current path to region database: %s\n", db_region_path);
+	printf("Current path to city database: %s\n", db_city_path);
 	printf("\n");
 	printf("-c or --country_list: limit the log to particular countries, this should be a comma separated list of country codes. Valid country codes are the ISO 3166 country codes (see http://www.maxmind.com/app/iso3166). \n");
 	printf("-r or --regex:        the parameters -p and -u are interpreted as regular expressions. Regular expression searching is probably slower so substring matching is recommended.\n");
@@ -865,6 +989,9 @@ int main(int argc, char **argv){
 	char *path_input = NULL;
 	char *domain_input = NULL;
 	char *ipaddress_input = NULL;
+	char *db_path = NULL;
+	char *bird = NULL;
+	int geo_param_supplied = -1;
 	int required_args = 0;
 
 	static struct option long_options[] = {
@@ -879,18 +1006,24 @@ int main(int argc, char **argv){
 			{"help", no_argument, NULL, 'h'},
 			{"force", no_argument, NULL, 'f'},
 			{"ip", required_argument, NULL, 'i'},
+			{"bird", required_argument, NULL, 'b'},
 			{0, 0, 0, 0}
 	};
 
 	int c;
 
-	while((c = getopt_long(argc, argv, "ac:d:m:fghi:rp:v", long_options, NULL)) != -1) {
+	while((c = getopt_long(argc, argv, "ab:c:d:m:fghi:rp:v", long_options, NULL)) != -1) {
 		// c,d,m,i,p have mandatory arguments
 		switch(c)
 		{
 		case 'a':
 			/* Indicate whether we should anonymize the log, default is false */
 			recode = ANONYMIZE;
+			break;
+
+		case 'b':
+			geo_param_supplied =0;
+			bird = optarg;
 			break;
 
 		case 'c':
@@ -960,13 +1093,17 @@ int main(int argc, char **argv){
 			break;
 
 		default:
-			exit(-1);
+			exit(EXIT_FAILURE);
 		}
 	}
+	if (geo_param_supplied==-1 && params[GEO_FILTER] ==1){
+		fprintf(stderr,"You supplied the -g parameter without specifying the -b parameter.\n");
+		exit(EXIT_FAILURE);
+	}
 	if (required_args>=1){
-		parse(country_input, path_input, domain_input, ipaddress_input);
+		parse(country_input, path_input, domain_input, ipaddress_input, bird, db_path);
 	} else{
 		usage();
 	}
-	return 0;
+	return EXIT_SUCCESS;
 }
