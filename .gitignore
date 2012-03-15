@@ -4,6 +4,7 @@ Debug/*
 udp_filter
 udp-filter
 Makefile.in
+Makefile
 /autom4te.cache
 data/
 .cproject
