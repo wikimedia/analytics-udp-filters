@@ -1,5 +1,3 @@
-#include <string.h>
-#include <stdio.h>
 /*
     Copyright (C) 2012  <Diederik van Liere / Wikimedia Foundation>
 
@@ -18,10 +16,12 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
+#include <string.h>
+#include <stdio.h>
 
 // This is an array with valid country codes, the country codes that are
 // supplied on the command line will be checked against this array.
-char *country_code_array[253] = {
+const char *country_code_array[253] = {
 "A1",    //,Anonymous Proxy
 "A2",    //,Satellite Provider
 "O1",    //,Other Country

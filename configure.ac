@@ -1,9 +1,62 @@
-AC_INIT(src/udp-filter.c)
 PACKAGE=udp-filter
 VERSION=0.2.0
-AM_INIT_AUTOMAKE($PACKAGE, $VERSION)
+EMAIL=dvanliere@wikimedia.org
+
+AC_INIT([udp-filter],[0.2.0],[dvanliere@wikimedia.org])
+AC_CONFIG_SRCDIR([src/udp-filter.c])
+AM_INIT_AUTOMAKE
+
+AM_CONDITIONAL(DEBUG, test x"$debug" = x"true")
+
+#Checks for header files
+AC_CHECK_HEADERS([stdio.h])
+AC_CHECK_HEADERS([stdlib.h])
+AC_CHECK_HEADERS([ctype.h])
+AC_CHECK_HEADERS([string.h])
+AC_CHECK_HEADERS([getopt.h])
+AC_CHECK_HEADERS([sys/types.h])
+AC_CHECK_HEADERS([regex.h])
+AC_CHECK_HEADERS([stddef.h])
+AC_CHECK_HEADERS([arpa/inet.h])
+AC_CHECK_HEADERS([sys/socket.h])
+AC_CHECK_HEADERS([netinet/in.h])
+AC_CHECK_HEADERS([netdb.h])
+AC_CHECK_HEADERS([GeoIP.h])
+AC_CHECK_HEADERS([GeoIPCity.h])
+
+
+
+##########################################################################
+# debug compilation support
+##########################################################################
+ 
+AC_MSG_CHECKING([whether to build with debug information])
+AC_ARG_ENABLE([debug],
+    [AS_HELP_STRING([--enable-debug],
+        [enable debug data generation (def=no)])],
+    [debugit="$enableval"],
+    [debugit=no])
+AC_MSG_RESULT([$debugit])
+ 
+if test x"$debugit" = x"yes"; then
+    AC_DEFINE([DEBUG],[],[Debug Mode])
+    AM_CXXFLAGS="$AM_CXXFLAGS -g -Wall -Werror -Wno-uninitialized -O0"
+else
+    AC_DEFINE([NDEBUG],[],[No-debug Mode])
+    AM_CXXFLAGS="$AM_CXXFLAGS -O3"
+fi
+ 
+##########################################################################
+
+
+AC_SUBST([AM_CXXFLAGS])
+
+
 AC_PROG_CC_C99
 AC_CHECK_LIB(geoip, GeoIP_num_countries)
+#AC_CHECK_HEADERS([GeoIPCity.h],[GeoIP.h],[udp_filter_found_int_headers=yes; break;])
+
+
 AC_CONFIG_FILES(Makefile)
-AC_CHECK_HEADERS([GeoIP.h],[udp_filter_found_int_headers=yes; break;])
+
 AC_OUTPUT

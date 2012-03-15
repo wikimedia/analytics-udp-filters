@@ -1,5 +1,8 @@
-1) UDP-filter does not (yet) support regular expression matching of filters and domain names. 
-
-2) UDP-filter does not (yet) support more granular geocoded data then the current country level. 
-
-3) The MaxMind City Geo database is not yet supported. 
+1) UDP-filter does not (yet) support regular expression matching of filters and domain names. Fixed as of version 0.2
+2) UDP-filter does not (yet) support more granular geocoded data then the current country level. Fixed as of version 0.2 
+3) The MaxMind City Geo database is not yet supported. Fixed as of version 0.2
+4) IP6 address filtering is not yet supported.
+5) Geolookup of IP6 addresses is not yet supported.
+6) Add SHA1 hash of ip addresses
+7) Chain different geo-levels together
+8) Add longitude latitude

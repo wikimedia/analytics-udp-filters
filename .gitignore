@@ -3,8 +3,6 @@ GeoIP.dat
 Debug/*
 udp_filter
 udp-filter
-Makefile.in
-Makefile
 /autom4te.cache
 data/
 .cproject
@@ -14,4 +12,6 @@ config.status
 debian/depcomp
 debian/install-sh
 debian/missing
-
+Xcode/
+udp-filter.dSYM/
+geoip/

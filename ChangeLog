@@ -1,0 +1,10 @@
+Version 0.1
+	Initial release with domain and path filtering
+	Geocoding at country level
+
+Version 0.2
+	IP address filtering
+	IP range filtering
+	Geocoding at city and region level
+	Refactoring of code
+	Regex support
