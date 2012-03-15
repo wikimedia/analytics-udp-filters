@@ -49,7 +49,8 @@ typedef enum BirdType{
 	COUNTRY,   // Quite obvious, geocoding at the country level.
 	REGION,    // This is country-specific, usually it's a province or state.
 	CITY,      // Geocoding at the city, this should be used with the necessary precautions.
-	LON_LAT,   // Geocode to longitude latitude
+	LAT_LON,   // Geocode to longitude latitude
+	EVERYTHING, // All of the above
 }BirdType;
 
 >>>>>>> Improvements:

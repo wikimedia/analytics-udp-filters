@@ -50,7 +50,7 @@
 
 char anonymous_ip[] = "0.0.0.0";
 char unknown_geography[] = "XX";
-const char comma_delimiter[] =",";
+const char comma_delimiter =',';
 const char ws_delimiter[] = " ";
 const char fs_delimiter[] = "/";
 const char us_delimiter[] = "_";
@@ -68,6 +68,8 @@ RecodeType recode = NO;
 IpMatchType ipmatch = SIMPLE;
 
 int params[5];   // Increase this when you add a new filter to ScreenType enum.
+
+#define MAX_BUF_LENGTH 24
 
 /*
  * This is the expected input format, both in length and in sequence:
@@ -92,7 +94,7 @@ sq18.wikimedia.org 1715898 1169499304.066 0 1.2.3.4 TCP_MEM_HIT/200 13208 GET ht
 
  */
 
-int determine_num_obs(char *raw_input, char delimiter) {
+int determine_num_obs(char *raw_input, const char delimiter) {
 	/*
 	 * Determine the number of comma-separated filter parameters are entered
 	 * on the command line. This function is applied to both the path_input and
@@ -141,7 +143,7 @@ regex_t * init_regex(char *token) {
 	return re;
 }
 
-void init_countries(char *countries[], char *country_input, int num_countries) {
+void init_countries(char *countries[], char *country_input, int num_countries, const char delimiter) {
 	/*
 	 * This function initializes an array of pointers that will contain the
 	 * country codes that we need to filtered (i.e. included in the log file)
@@ -153,7 +155,7 @@ void init_countries(char *countries[], char *country_input, int num_countries) {
 	}
 	char *country_input_dup = strdup(country_input);
 	if (country_input_dup != NULL) {
-		char *country_token = strtok(country_input_dup, comma_delimiter);
+		char *country_token = strtok(country_input_dup, &delimiter);
 		int i=0;
 		while (country_token != NULL) {
 			int result = verify_country_code(country_token);
@@ -164,7 +166,7 @@ void init_countries(char *countries[], char *country_input, int num_countries) {
 				exit(EXIT_FAILURE);
 			}
 			i++;
-			country_token = strtok(NULL, comma_delimiter);
+			country_token = strtok(NULL, &delimiter);
 			if (i>num_countries){
 				fprintf(stderr, "Catching out of bounds error while initializing countries array.\n");
 				exit(EXIT_FAILURE);
@@ -233,17 +235,17 @@ long convert_ip_to_long(char *ip_address, int initialization){
 	}
 }
 
-void init_ip_addresses(Filter *filters, char *ipaddress_input){
+void init_ip_addresses(Filter *filters, char *ipaddress_input, const char delimiter){
 	int i=0;
 	int initialization=1;
 	char *ipaddress_input_dup = strdup(ipaddress_input);
-	ipaddress_input_dup = strtok(ipaddress_input, comma_delimiter);
+	ipaddress_input_dup = strtok(ipaddress_input, &delimiter);
 	if(strstr(ipaddress_input_dup, "-") == NULL) {
 		// we are not dealing with ip-ranges but just with individual ip adress(es).
 		while (ipaddress_input_dup!=NULL) {
 			filters[i].ip.address_long= convert_ip_to_long(ipaddress_input_dup, initialization);
 			i++;
-			ipaddress_input_dup = strtok(NULL, comma_delimiter);
+			ipaddress_input_dup = strtok(NULL, &delimiter);
 		}
 	} else {
 		ipmatch = RANGE;
@@ -256,7 +258,7 @@ void init_ip_addresses(Filter *filters, char *ipaddress_input){
 }
 
 
-void init_paths(Filter *filters, char *path_input) {
+void init_paths(Filter *filters, char *path_input, const char delimiter) {
 	/* path_input is a string *excluding* the full qualified domain name
 	 * path_input can be comma delimited, so we first need to determine the
 	 * different parts and then depending on whether the regex_flag is activated
@@ -266,7 +268,7 @@ void init_paths(Filter *filters, char *path_input) {
 	int i=0;
 	int error=0;
 
-	url_token = strtok(path_input,comma_delimiter);
+	url_token = strtok(path_input,&delimiter);
 	while (url_token != NULL) {
 		switch(search) {
 		case STRING:{
@@ -292,7 +294,7 @@ void init_paths(Filter *filters, char *path_input) {
 		}
 		}
 		i++;
-		url_token = strtok(NULL,comma_delimiter);
+		url_token = strtok(NULL,&delimiter);
 	}
 
 	if (error==1){
@@ -302,7 +304,7 @@ void init_paths(Filter *filters, char *path_input) {
 
 }
 
-void init_domains(Filter *filters, char *domain_input){
+void init_domains(Filter *filters, char *domain_input, const char delimiter){
 	/*
 	 * domain_input is a comma separated list of Wikipedia
 	 * (parts of) domain names. Valid examples include:
@@ -314,7 +316,7 @@ void init_domains(Filter *filters, char *domain_input){
 	int i=0;
 	int error=0;
 	char *domain_token;
-	domain_token = strtok(domain_input, comma_delimiter);
+	domain_token = strtok(domain_input, &delimiter);
 
 	while (domain_token !=NULL){
 		switch(search){
@@ -342,7 +344,7 @@ void init_domains(Filter *filters, char *domain_input){
 		}
 		}
 		i++;
-		domain_token=strtok(NULL, comma_delimiter);
+		domain_token=strtok(NULL, &delimiter);
 	}
 	if (error==1){
 		fprintf(stderr, "DOMAIN: Could not allocate memory. This should never happen");
@@ -358,8 +360,10 @@ int init_bird_level(char *bird){
 		result = REGION;
 	} else if (strcmp(bird,"city")==0) {
 		result = CITY;
-	} else if (strcmp(bird, "lonlat")==0){
-		result = LON_LAT;
+	} else if (strcmp(bird, "latlon")==0){
+		result = LAT_LON;
+	} else if (strcmp(bird, "everything")==0){
+		result = EVERYTHING;
 	} else {
 		fprintf(stderr, "%s is not a valid option for geocoding. <country>, <region>, <city> or <lonlat> (without the <> are valid choices).\n", bird);
 		exit(EXIT_FAILURE);
@@ -549,16 +553,16 @@ char *geo_lookup(GeoIP *gi, char *ipaddr, int bird) {
 	 * extend this in the future with more granular data
 	 * such as region,city or even zipcode.
 	 */
-	int max_buf_length= 100;
-	char *area = malloc(max_buf_length);
+	static char area[MAX_BUF_LENGTH];
+
 
 	switch(bird){
 		case COUNTRY: {
 			const char *country= GeoIP_country_code_by_addr(gi, ipaddr);
 			if (country==NULL){
-				strcpy(area, unknown_geography);
+				strncpy(area, unknown_geography, MAX_BUF_LENGTH);
 			} else {
-				strcpy(area, country);
+				strncpy(area, country, MAX_BUF_LENGTH);
 			}
 
 			}
@@ -567,48 +571,95 @@ char *geo_lookup(GeoIP *gi, char *ipaddr, int bird) {
 		case REGION:{
 			GeoIPRegion *gir;
 			gir=GeoIP_region_by_addr(gi,ipaddr);
-			if(strlen(gir->region)==0){
-				area= unknown_geography;
+			if(gir == NULL || strlen(gir->region)==0){
+				strncpy(area, unknown_geography, MAX_BUF_LENGTH);
 			} else {
-				area=gir->region;
+				strncpy(area, gir->region, MAX_BUF_LENGTH);
 			}
 
-			GeoIPRegion_delete(gir);
+			if(gir != NULL) {
+				GeoIPRegion_delete(gir);
 			}
 			break;
+		}
 
 		case CITY:{
 			GeoIPRecord *grecord;
+			char *city;
+			int mustFreeCity = 0;
 			grecord = GeoIP_record_by_addr(gi, ipaddr);
 			if (grecord !=NULL){
 				if (grecord->city == NULL){
-					strcpy(area, unknown_geography);
+					strncpy(area, unknown_geography, MAX_BUF_LENGTH);
 				} else {
 					int len = strlen(grecord->city);
-					strcpy(area,grecord->city);
+					if (grecord->charset == 0) {
+						city = _GeoIP_iso_8859_1__utf8(grecord->city);
+						mustFreeCity = 1;
+					} else {
+						city = grecord->city;
+					}
+					strncpy(area,city, MAX_BUF_LENGTH);
 					replace_space_with_underscore(area, len);
+				}
+				if (mustFreeCity) {
+					free(city);
 				}
 				GeoIPRecord_delete(grecord);
 			} else {
-				area = malloc(unknown_geography_length*sizeof(char));
-				strcpy(area, unknown_geography);
+				strncpy(area, unknown_geography, MAX_BUF_LENGTH);
 			}
 			break;
 		}
 
-		case LON_LAT: {
+		case LAT_LON: {
 			GeoIPRecord *grecord;
 			grecord = GeoIP_record_by_addr(gi, ipaddr);
 			if (grecord!=NULL){
-				int length = 0;
-				length += snprintf(area+length, max_buf_length, "%f", grecord->longitude);
-				length += snprintf(area+length, max_buf_length, "%s", ":");
-				length += snprintf(area+length, max_buf_length, "%f", grecord->latitude);
+				snprintf(area, MAX_BUF_LENGTH, "%f:%f", grecord->latitude, grecord->longitude);
+				GeoIPRecord_delete(grecord);
 			} else {
-				area = unknown_geography;
+				strncpy(area, unknown_geography, MAX_BUF_LENGTH);
 			}
+			break;
 		}
-		break;
+
+		case EVERYTHING: {
+			GeoIPRecord *grecord;
+			char *country = unknown_geography, *region = unknown_geography, *city = unknown_geography;
+			int mustFreeCity = 0;
+			float lat = 0.0, lon = 0.0;
+			grecord = GeoIP_record_by_addr(gi, ipaddr);
+			if (grecord != NULL) {
+				if (city != NULL) {
+					if (grecord->charset == 0) {
+						city = _GeoIP_iso_8859_1__utf8(grecord->city);
+						mustFreeCity = 1;
+					} else {
+						city = strdup(grecord->city);
+						mustFreeCity = 1;
+					}
+					replace_space_with_underscore(city, strlen(city));
+				}
+
+				if (grecord->region != NULL) {
+					region = grecord->region;
+				}
+				if (grecord->country_code != NULL) {
+					country = grecord->country_code;
+				}
+				lat = grecord->latitude;
+				lon = grecord->longitude;
+
+				GeoIPRecord_delete(grecord);
+			}
+			snprintf(area, MAX_BUF_LENGTH, "%s:%s:%s:%f:%f", country, region, city,
+									lat, lon);
+			if (mustFreeCity) {
+				free(city);
+			}
+			break;
+		}
 
 		default:
 			break;
@@ -655,6 +706,7 @@ void replace_ip_addr(char *fields[], char* area){
 }
 
 void free_memory(Filter *filters, char *path_input, char *domain_input, int num_filters) {
+	//TODO close filehandle
 	int i;
 	for(i=0;i<num_filters; i++){
 		if (filters[i].searchtype == DOMAIN_FILTER){
@@ -693,12 +745,12 @@ void free_memory(Filter *filters, char *path_input, char *domain_input, int num_
 
 void parse(char *country_input, char *path_input, char *domain_input, char *ipaddress_input, char *bird, char *db_path) {
 	// GENERIC VARIABLES
-	char *fields[num_fields];	//the number of fields we expect in a single line
-	int num_filters =0;
-	int num_domain_filters =0;
-	int num_path_filters =0 ;
-	int num_ipaddress_filters=0;
-	int num_countries_filters=0;
+	char *fields[num_fields];	// the number of fields we expect in a single line
+	int num_filters =0;			// the total number of filters we detect from the command line
+	int num_domain_filters =0;  // the total number of domain filters
+	int num_path_filters =0 ;   // the total number of path filters
+	int num_ipaddress_filters=0;// the total number of ipaddress filter
+	int num_countries_filters=0;// the total number countries we want to restrict the filtering
 	int required_hits =0;
 	int bird_int = 0;
 	int i;
@@ -720,21 +772,21 @@ void parse(char *country_input, char *path_input, char *domain_input, char *ipad
 
 		case 1: // DOMAIN_FILTER
 			if(params[n] ==1){
-				num_domain_filters  = determine_num_obs(domain_input,comma_delimiter[0]);
+				num_domain_filters  = determine_num_obs(domain_input,comma_delimiter);
 				required_hits+=1;
 			}
 			break;
 
 		case 2: // PATH_FILTER
 			if(params[n] ==1){
-				num_path_filters = determine_num_obs(path_input,comma_delimiter[0]);
+				num_path_filters = determine_num_obs(path_input,comma_delimiter);
 				required_hits+=1;
 			}
 			break;
 
 		case 3: //IP_FILTER
 			if(params[n] ==1){
-				num_ipaddress_filters = determine_num_obs(ipaddress_input, comma_delimiter[0]);
+				num_ipaddress_filters = determine_num_obs(ipaddress_input, comma_delimiter);
 				required_hits+=1;
 			}
 			break;
@@ -742,7 +794,7 @@ void parse(char *country_input, char *path_input, char *domain_input, char *ipad
 		case 4: // GEO_FILTER
 			if(params[n] ==1){
 				if(country_input != NULL && strlen(country_input) >1){
-					num_countries_filters= determine_num_obs(country_input, comma_delimiter[0]);
+					num_countries_filters= determine_num_obs(country_input, comma_delimiter);
 					required_hits+=1;
 				}
 			}
@@ -769,25 +821,31 @@ void parse(char *country_input, char *path_input, char *domain_input, char *ipad
 
 		case 1: // DOMAIN_FILTER
 			if(params[n] ==1){
-				init_domains(filters, domain_input);
+				init_domains(filters, domain_input,comma_delimiter);
+			} else {
+				domain_input=NULL;
 			}
 			break;
 
 		case 2: // PATH_FILTER
 			if(params[n] ==1){
-				init_paths(filters, path_input);
+				init_paths(filters, path_input, comma_delimiter);
+			} else {
+				path_input = NULL;
 			}
 			break;
 
 		case 3: //IP_FILTER
 			if(params[n] ==1){
-				init_ip_addresses(filters, ipaddress_input);
+				init_ip_addresses(filters, ipaddress_input, comma_delimiter);
+			} else {
+				ipaddress_input = NULL;
 			}
 			break;
 
 		case 4: // GEO_FILTER
-			if(params[n] ==1){
-				init_countries(countries, country_input, num_countries_filters);
+			if(params[n] ==1 || recode==GEO){
+				init_countries(countries, country_input, num_countries_filters, comma_delimiter);
 				bird_int = init_bird_level(bird);
 				/*
 				 *  Before changing the type of cache, have a look at this benchmark:
@@ -816,7 +874,14 @@ void parse(char *country_input, char *path_input, char *domain_input, char *ipad
 					gi = GeoIP_open(db_city_path, GEOIP_MEMORY_CACHE);
 					break;
 
-				case LON_LAT:
+				case LAT_LON:
+					if(db_path!=NULL){
+						db_city_path=db_path;
+					}
+					gi = GeoIP_open(db_city_path, GEOIP_MEMORY_CACHE);
+					break;
+
+				case EVERYTHING:
 					if(db_path!=NULL){
 						db_city_path=db_path;
 					}
@@ -838,6 +903,8 @@ void parse(char *country_input, char *path_input, char *domain_input, char *ipad
 						fprintf(stderr,"Maxmind database: %i; version: %i\n", db_edition, geodbtype);
 					}
 				}
+			} else {
+				country_input =NULL;
 			}
 			break;
 		}
@@ -851,6 +918,7 @@ void parse(char *country_input, char *path_input, char *domain_input, char *ipad
 
 	while (!feof(stdin)) {
 		int found =0;
+		area = NULL;
 		//re-initialize the fields array.
 		for (j = 0; j < num_fields; j++) {
 			fields[j] = NULL;
@@ -869,13 +937,12 @@ void parse(char *country_input, char *path_input, char *domain_input, char *ipad
 			i++;
 		} while (r != NULL && i < num_fields);
 
-		if (i<num_fields){
-			/* line contained fewer than 14 fields, ignore this field.
+		if (i!=num_fields || r != NULL){
+			/* line contained more or less than 14 fields, ignore this field.
 			 *  this check should be stricter, it should basically ignore any
 			 *  line with != 14 fields, however there are too many known issues
 			 *  with the current logging infrastructure that we know for a fact
-			 *  that we will run into longer lines. Longer lines should not cause
-			 *  any problems as we are only looking at fields 4 and 8.
+			 *  that we will run into longer lines.
 			 */
 			continue;
 		}
@@ -948,6 +1015,7 @@ void parse(char *country_input, char *path_input, char *domain_input, char *ipad
 				}
 				FPUTS(fields[i], stdout);
 			}
+
 		}
 
 		if (verbose_flag) {
@@ -968,7 +1036,7 @@ void usage() {
 	printf("-d or --domain:       the part of the domain name that you want to match. For example, 'en.m.' would match all English mobile Wikimedia projects.\n");
 	printf("\n");
 	printf("-g or --geocode:      flag to indicate geocode the log, by default turned off.\n");
-	printf("-b or --bird:         parameter that is mandatory when specifying -g or --geocode. Valid choices are <country>, <region>, <city> and <lonlat>.\n");
+	printf("-b or --bird:         parameter that is mandatory when specifying -g or --geocode. Valid choices are <country>, <region>, <city>, <latlon> and <everything>.\n");
 	printf("-a or --anonymize:    flag to indicate anonymize the log, by default turned off.\n");
 	printf("-i or --ip:           flag to indicate ip-filter the log, by default turned off. You can supply comma separated ip adresses, or comma-separated ip-ranges.\n");
 	printf("\n");
@@ -1057,7 +1125,7 @@ int main(int argc, char **argv){
 		case 'g':
 			/* Indicate whether we should do geocode, default is false */
 			recode = GEO;
-			params[GEO_FILTER] = 1;
+			//params[GEO_FILTER] = 1;
 			break;
 
 		case 'h':
