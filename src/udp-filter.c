@@ -38,11 +38,14 @@
 #include <netinet/in.h>
 #include <netdb.h>
 
-
 #include <GeoIP.h>
 #include <GeoIPCity.h>
 #include "countries.h"
 #include "udp-filter.h"
+
+#ifndef GeoIP_cleanup
+#define GeoIP_cleanup
+#endif
 
 /*
  * Enter this in GDB for debugging
@@ -55,8 +58,6 @@ const char comma_delimiter =',';
 const char ws_delimiter[] = " ";
 const char fs_delimiter = '/';
 const char us_delimiter = '-';
-const int num_fields = 14;
-const int unknown_geography_length =2;
 const int num_predefined_filters = (GEO_FILTER - NO_FILTER) +1;
 int verbose_flag = 0;       // this flag indicates whether we should output detailed debug messages, default is off.
 
@@ -803,7 +804,7 @@ void free_memory(Filter *filters, char *path_input, char *domain_input, int num_
 	}
 }
 
-void parse(char *country_input, char *path_input, char *domain_input, char *ipaddress_input, char *bird, char *db_path) {
+void parse(char *country_input, char *path_input, char *domain_input, char *ipaddress_input, char *bird, char *db_path, int num_fields) {
 	// GENERIC VARIABLES
 	char *fields[num_fields];	// the number of fields we expect in a single line
 	int num_filters =0;			// the total number of filters we detect from the command line
@@ -1086,7 +1087,8 @@ void usage() {
 	printf("-a or --anonymize:    flag to indicate anonymize the log, by default turned off.\n");
 	printf("-i or --ip:           flag to indicate ip-filter the log, by default turned off. You can supply comma separated ip adresses, or comma-separated ip-ranges.\n");
 	printf("\n");
-	printf("-m or --maxmind:     specify alternative path to MaxMind database.\n");
+	printf("-n or --num_fields    specify the number of fields that a log line contains. Default is 14.\n");
+	printf("-m or --maxmind:      specify alternative path to MaxMind database.\n");
 	printf("Current path to region database: %s\n", db_region_path);
 	printf("Current path to city database: %s\n", db_city_path);
 	printf("\n");
@@ -1107,26 +1109,28 @@ int main(int argc, char **argv){
 	char *bird = NULL;
 	int geo_param_supplied = -1;
 	int required_args = 0;
+	int num_fields = 14;
 
 	static struct option long_options[] = {
-			{"path", required_argument, NULL, 'p'},
-			{"domain", required_argument, NULL, 'd'},
-			{"geocode", no_argument, NULL, 'g'},
 			{"anonymize", no_argument, NULL, 'a'},
-			{"maxmind", required_argument, NULL, 'm'},
+			{"bird", required_argument, NULL, 'b'},
 			{"country_list", required_argument, NULL, 'c'},
+			{"domain", required_argument, NULL, 'd'},
+			{"force", no_argument, NULL, 'f'},
+			{"geocode", no_argument, NULL, 'g'},
+			{"help", no_argument, NULL, 'h'},
+			{"ip", required_argument, NULL, 'i'},
+			{"maxmind", required_argument, NULL, 'm'},
+			{"num_fields", required_argument, NULL, 'n'},
+			{"path", required_argument, NULL, 'p'},
 			{"regex", no_argument, NULL, 'r'},
 			{"verbose", no_argument, NULL, 'v'},
-			{"help", no_argument, NULL, 'h'},
-			{"force", no_argument, NULL, 'f'},
-			{"ip", required_argument, NULL, 'i'},
-			{"bird", required_argument, NULL, 'b'},
 			{0, 0, 0, 0}
 	};
 
 	int c;
 
-	while((c = getopt_long(argc, argv, "ab:c:d:m:fghi:rp:v", long_options, NULL)) != -1) {
+	while((c = getopt_long(argc, argv, "ab:c:d:m:n:fghi:rp:v", long_options, NULL)) != -1) {
 		// c,d,m,i,p have mandatory arguments
 		switch(c)
 		{
@@ -1160,6 +1164,10 @@ int main(int argc, char **argv){
 		case 'm':
 			/* Optional alternative path to database. */
 			db_path = optarg;
+			break;
+
+		case 'n':
+			num_fields = atoi(optarg);
 			break;
 
 		case 'f':
@@ -1215,7 +1223,7 @@ int main(int argc, char **argv){
 		exit(EXIT_FAILURE);
 	}
 	if (required_args>=1){
-		parse(country_input, path_input, domain_input, ipaddress_input, bird, db_path);
+		parse(country_input, path_input, domain_input, ipaddress_input, bird, db_path, num_fields);
 	} else{
 		usage();
 	}
