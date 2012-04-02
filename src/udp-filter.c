@@ -746,17 +746,17 @@ void free_memory(Filter *filters, char *path_input, char *domain_input, int num_
 		GeoIP_delete(gi);
 	}
 
-	if (path_input){
-		int result = GeoIP_cleanup();
-		if (verbose_flag){
-			fprintf(stderr,"Path:%s\n", path_input);
-			if (result==1){
-				fprintf(stderr,"Closing geomind database was successful.\n");
-			} else {
-				fprintf(stderr,"Closing geomind database was NOT successful.\n");
-			}
-		}
-	}
+//	if (path_input){
+//		int result = GeoIP_cleanup();
+//		if (verbose_flag){
+//			fprintf(stderr,"Path:%s\n", path_input);
+//			if (result==1){
+//				fprintf(stderr,"Closing geomind database was successful.\n");
+//			} else {
+//				fprintf(stderr,"Closing geomind database was NOT successful.\n");
+//			}
+//		}
+//	}
 
 	if (countries){
 		for(i=0;i<num_countries_filters;i++){
