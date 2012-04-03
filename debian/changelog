@@ -1,5 +1,0 @@
-udp-filters (0.1+git20120131-1) unstable; urgency=low
-
-  * Initial release (Closes: #nnnn)  <nnnn is the bug number of your ITP>
-
- -- Diederik van Liere <dvanliere@wikimedia.org>  Wed, 01 Feb 2012 14:33:35 +0000
