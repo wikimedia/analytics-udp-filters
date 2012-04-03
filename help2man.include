@@ -1,0 +1,50 @@
+[name]
+udp-filter \- start udp-filter
+
+[synopsis]
+udp-filter [domain] [path] [ip-range] <OUTPUT.LOG>
+
+[examples]
+udp_filter -d en.wikipedia this will log all pageviews (depending 
+on the sampling rate) if the domain contains en.wikipedia
+.P
+udp_filter -p SOPO this will log all pageviews (depending 
+on the sampling rate) when the url (excluding the domain name) contains SOPA.
+So this will collect SOPA *across* projects.
+.P
+udp_filter -d en.wikipedia -p SOPA this will log all pageviews (depending 
+on the sampling rate) where the domain contains en.wikipedia and the url 
+contains SOPA.
+.P
+udp_filter -d en.wikipedia -p SOPA,PIPA this will log all pageviews (
+depending on the sampling rate) where the domain contains en.wikipedia and the 
+url contains either SOPA or PIPA.
+.P
+udp_filter -d en.wikipedia -a this will log all pageviews (depending 
+on the sampling rate) if the domain contains en.wikipedia and replace the 
+ip address of the visitor with 0.0.0.0
+.P
+udp_filter -d en.wikipedia -g this will log all pageviews (depending 
+on the sampling rate) if the domain contains en.wikipedia and replace the 
+ip address of the visitor with the country code. See for a list of all the 
+valid country codes: http://www.maxmind.com/app/iso3166
+.P
+udp_filter -d en.wikipedia -g -c BA -b country this will log all pageviews (depending 
+on the sampling rate) if the domain contains en.wikipedia and replace the ip 
+address of the visitor with the country code. In addition, only hits from Brasil 
+(BA) will be logged.
+.P
+udp_filter -d en.wikipedia -g -m GeoIP.dat this specifies an alternative path 
+for the MaxMind database and this will log all pageviews (depending 
+on the sampling rate) if the domain contains en.wikipedia.
+.P
+udp_filter -d en.wikipedia -p SOPA -c US -b country this will log all pageviews 
+(depending on the sampling rate) where the domain contains en.wikipedia and 
+the url contains SOPA and the visitor comes from the US. 
+.P
+udp_filter -d en.wikipedia -v this turns on verbose logging and can 
+help in debugging and verifying that the appropriate hits are being logged.
+This setting is not recommended in production.
+
+[bugs]
+No known bugs, but let me know if you find any.
