@@ -1,10 +1,41 @@
-Version 0.1
-	Initial release with domain and path filtering
-	Geocoding at country level
+udp-filter (0.2.0) stable; urgency=low
 
-Version 0.2
-	IP address filtering
-	IP range filtering
-	Geocoding at city and region level
-	Refactoring of code
-	Regex support
+  * Tim rewrote append_char function Removed exotic for/loop Replaced all 
+    strtok with strchr.
+  * Version 0.2: - IP Filtering - Geocoding at country, region, city and 
+    latlon level - Fixed memory leaks - Roan is a hero
+  * Added longitude / latitude geocoding.
+  * Removed OS specific build file.
+  * Improvements:
+  * Added full support for ip address and ip range filtering Added full 
+    support for regular expression matching Incorporated feedback from Tim, 
+    still struggling 
+  * Adding ip-filtering support (not working)
+  * Check if country codes are valid and finish renaming stuff
+  * Originally, this was udp.c, renamed to increase consistency.
+  * Rename udp.c to udp-filter.c so now the binary file name and the source 
+    filename are consistent.
+  * Improving support for regular expressions.
+  * Simple script to test code quality.
+  * Ignore more build-specific files.
+  * Merge "Fixed link."
+  * Merge "Updated control file to work on emery server."
+  * Merge "Added support for not having to define a filter, (the -f option)."
+  * Added support for not having to define a filter, (the -f option).
+  * Fixed link.
+  * Updated control file to work on emery server.
+  * Updated the documentation with the new -f or --force option.
+  * Added example configuration control and copyright file and updated the 
+    README file with detailed installation instructions.
+  * Merge "Adding debian package support."
+  * Adding debian package support.
+  * Made minor changse to .gitignore
+  * Regex support
+  * Fixed previous commit that containted error markers.
+  * Adding latest fixes.
+  * Initial commit, feedback Catrope incorporated, feedback Tim Starling (3x)
+    incorporated
+  * Add .gitreview file
+  * Initial empty repository
+
+ -- Diederik van Liere (Wikimedia Foundation) <dvanliere@wikimedia.org>  Sun, 1 Apr 2012 18:47:30 -0500

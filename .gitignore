@@ -15,3 +15,7 @@ debian/missing
 Xcode/
 udp-filter.dSYM/
 geoip/
+configure
+a.out.dSYM/
+Makefile
+Makefile.in
