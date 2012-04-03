@@ -23,6 +23,10 @@
 #endif
 
 #define MAX_ERROR_MSG 0x1000
+#define VERSION_NUMBER 0.2.0
+#define VERSION_STRING_HELPER(X) #X
+#define VERSION_STRING(X) VERSION_STRING_HELPER(X)
+
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -1074,9 +1078,15 @@ void parse(char *country_input, char *path_input, char *domain_input, char *ipad
 }
 
 
+void version() {
+	char *version = VERSION_STRING(VERSION_NUMBER);
+	printf("%s\n", version);
+}
+
 void usage() {
 	printf("Wikimedia's generic UDP filtering system.\n");
-	printf("Version 0.2 // Written by Diederik van Liere.\n");
+	printf("Written by Diederik van Liere (dvanliere@wikimedia.org).\n");
+	version();
 	printf("\n");
 	printf("Either --path or --domain are mandatory (you can use them both, the other command line parameters are optional:\n");
 	printf("-p or --path:         the string or multiple strings separated by a comma that indicate what you want to match.\n");
@@ -1085,7 +1095,7 @@ void usage() {
 	printf("-g or --geocode:      flag to indicate geocode the log, by default turned off.\n");
 	printf("-b or --bird:         parameter that is mandatory when specifying -g or --geocode. Valid choices are <country>, <region>, <city>, <latlon> and <everything>.\n");
 	printf("-a or --anonymize:    flag to indicate anonymize the log, by default turned off.\n");
-	printf("-i or --ip:           flag to indicate ip-filter the log, by default turned off. You can supply comma separated ip adresses, or comma-separated ip-ranges.\n");
+	printf("-i or --ip:           flag to indicate ip-filter the log, by default turned off. You can supply comma separated ip addresses, or comma-separated ip-ranges.\n");
 	printf("\n");
 	printf("-n or --num_fields    specify the number of fields that a log line contains. Default is 14.\n");
 	printf("-m or --maxmind:      specify alternative path to MaxMind database.\n");
@@ -1098,6 +1108,7 @@ void usage() {
 	printf("\n");
 	printf("-v or --verbose:      output detailed debug information to stderr, not recommended in production.\n");
 	printf("-h or --help:         show this menu with all command line options.\n");
+	printf("-V or --version       show version info.\n");
 }
 
 int main(int argc, char **argv){
@@ -1130,7 +1141,7 @@ int main(int argc, char **argv){
 
 	int c;
 
-	while((c = getopt_long(argc, argv, "ab:c:d:m:n:fghi:rp:v", long_options, NULL)) != -1) {
+	while((c = getopt_long(argc, argv, "ab:c:d:m:n:fghi:rp:vV", long_options, NULL)) != -1) {
 		// c,d,m,i,p have mandatory arguments
 		switch(c)
 		{
@@ -1212,6 +1223,12 @@ int main(int argc, char **argv){
 		case 'v':
 			/* Turn verbose on */
 			verbose_flag = 1;
+			break;
+
+		case 'V':
+			/* Show version information to user */
+			version();
+			exit(EXIT_SUCCESS);
 			break;
 
 		default:
