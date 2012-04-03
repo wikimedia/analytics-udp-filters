@@ -132,7 +132,6 @@ void replace_space_with_underscore(char *string, int len){
 regex_t *init_regex(char *token) {
 	/*
 	 * This function tries to compile a string into a regex_t type
-	 *
 	 */
 	regex_t *re = (regex_t *) malloc(sizeof(regex_t));
 	if (re == NULL){
@@ -162,8 +161,8 @@ void init_countries(char *countries[], char *country_input, int num_countries, c
 	char *input = strdup(country_input);
 	int i=0;
 
-	for (;;) {
-		char *startToken = input;
+	char *startToken = input;
+	for(i=0; i<num_countries; i++) {
 		char *endToken;
 		endToken = strchr(startToken, delimiter);
 		if (endToken) {
@@ -172,14 +171,13 @@ void init_countries(char *countries[], char *country_input, int num_countries, c
 		int result = verify_country_code(startToken);
 		if (result){
 			countries[i] = strdup(startToken);
+			if (verbose_flag){
+				fprintf(stderr,"%d:%s\n", i, startToken);
+			}
 		} else {
 			fprintf(stderr, "%s is not a valid ISO 3166-1 country code.\n", startToken);
 			exit(EXIT_FAILURE);
 		}
-		if (!endToken) {
-			break;
-		}
-		i++;
 		startToken = endToken + 1;
 	}
 	if (i>num_countries){
@@ -193,6 +191,8 @@ long convert_ip_to_long(char *ip_address, int initialization){
 	/*
 	 * Given an IP (4 or 6) address return the long value.
 	 */
+	long ip_long = -1;
+
 	struct addrinfo *addr;
 	struct addrinfo hints;
 	memset(&hints, 0, sizeof(hints));
@@ -201,9 +201,8 @@ long convert_ip_to_long(char *ip_address, int initialization){
 	hints.ai_socktype=0;
 	hints.ai_protocol=0;
 
-	int result = getaddrinfo(ip_address, NULL,&hints, &addr);
+	int result = getaddrinfo(ip_address, NULL, &hints, &addr);
 	if (result==0){
-		long ip_long = -1;
 		switch (addr->ai_family) {
 		case AF_INET:{
 			struct sockaddr_in *ipv4 = (struct sockaddr_in *)addr->ai_addr;
@@ -211,22 +210,26 @@ long convert_ip_to_long(char *ip_address, int initialization){
 			break;
 		}
 		case AF_INET6:{
-			struct sockaddr_in6 *ipv6 = (struct sockaddr_in6 *)addr->ai_addr;
 			/* we cannot convert an ip6 address to a long, an ip6 address is stored
 			 *  as an array of sixteen 8-bit elements, that together make up a
 			 *  single 128-bit IPv6 address. (ipv6->sin6_addr.__u6_addr;)
 			 *  Implementation is not finished.
 			 *  TODO: Add byte-by-byte comparison
 			 */
-			fprintf(stderr,"IP6 address filtering is not yet implemented.\n");
-			free(ipv6);
+			char ipstr[INET6_ADDRSTRLEN];
+			void *addr_tmp;
+			struct sockaddr_in6 *ipv6 = (struct sockaddr_in6 *)addr->ai_addr;
+			addr_tmp = &(ipv6->sin6_addr);
+			inet_ntop(addr->ai_family,addr_tmp, ipstr, sizeof ipstr);
+			fprintf(stderr, "IP6 address filtering is not yet implemented.\n");
+			fprintf(stderr, "Address:%s\n", ipstr);
 			break;
 		}
 		default:
 			break;
 		}
 
-		if (verbose_flag==1){
+		if (verbose_flag){
 			fprintf(stderr,"ip-address: %s\t ip-address long value:%ld\n", ip_address, ip_long);
 		}
 		freeaddrinfo(addr);
@@ -243,7 +246,7 @@ long convert_ip_to_long(char *ip_address, int initialization){
 			// we are encountering the error while parsing a logline, just
 			// ignore it and go to the next line
 			freeaddrinfo(addr);
-			return -1;
+			return ip_long;
 		}
 	}
 }
@@ -292,8 +295,8 @@ void init_paths(Filter *filters, char *path_input, const char delimiter) {
 	int error=0;
 
 	char *input = strdup(path_input);
+	char *startToken = input;
 	for (;;){
-		char *startToken = input;
 		char *endToken;
 		endToken = strchr(startToken, delimiter);
 		if (endToken) {
@@ -351,9 +354,9 @@ void init_domains(Filter *filters, char *domain_input, const char delimiter){
 	int error=0;
 
 	char *input = strdup(domain_input);
-
+	char *startToken = input;
 	for (;;){
-		char *startToken = input;
+
 		char *endToken;
 		endToken = strchr(startToken, delimiter);
 		if (endToken) {
@@ -486,7 +489,7 @@ int match_path(char *url, Filter *filters, int num_path_filters){
 		char* path = strtok(url, ws_delimiter);
 
 		if (path!=NULL){
-			for (i = 0; i < num_path_filters; ++i) {
+			for (i = 0; i < num_path_filters; i++) {
 				switch (search){
 				case STRING:
 					if (strstr(path, filters[i].path.string)!=NULL){
@@ -1080,35 +1083,41 @@ void parse(char *country_input, char *path_input, char *domain_input, char *ipad
 
 void version() {
 	char *version = VERSION_STRING(VERSION_NUMBER);
-	printf("%s\n", version);
+	printf("udp-filter %s\n", version);
+	printf("Copyright (C) 2012 Wikimedia Foundation, Inc.\n");
+	printf("This is free software; see the source copying conditions. There is NO\n");
+	printf("warrant; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.\n");
+	printf("\n");
+	printf("Written by Diederik van Liere (dvanliere@wikimedia.org).\n");
 }
 
 void usage() {
 	printf("Wikimedia's generic UDP filtering system.\n");
-	printf("Written by Diederik van Liere (dvanliere@wikimedia.org).\n");
-	version();
+	printf("This new filter system replaces the old collection of filters written in C. It is highly customizable and can be fully configured using the command line.\n");
 	printf("\n");
-	printf("Either --path or --domain are mandatory (you can use them both, the other command line parameters are optional:\n");
-	printf("-p or --path:         the string or multiple strings separated by a comma that indicate what you want to match.\n");
-	printf("-d or --domain:       the part of the domain name that you want to match. For example, 'en.m.' would match all English mobile Wikimedia projects.\n");
+	printf("\nUsage: udp-filter [OPTION] ...\n\n");
+	printf("Options:\n");
+	printf("  Either --path or --domain are mandatory (you can use them both, the other command line parameters are optional.\n");
+	printf("  -p or --path:         the string or multiple strings separated by a comma that indicate what you want to match.\n");
+	printf("  -d or --domain:       the part of the domain name that you want to match. For example, 'en.m.' would match all English mobile Wikimedia projects.\n");
 	printf("\n");
-	printf("-g or --geocode:      flag to indicate geocode the log, by default turned off.\n");
-	printf("-b or --bird:         parameter that is mandatory when specifying -g or --geocode. Valid choices are <country>, <region>, <city>, <latlon> and <everything>.\n");
-	printf("-a or --anonymize:    flag to indicate anonymize the log, by default turned off.\n");
-	printf("-i or --ip:           flag to indicate ip-filter the log, by default turned off. You can supply comma separated ip addresses, or comma-separated ip-ranges.\n");
+	printf("  -g or --geocode:      flag to indicate geocode the log, by default turned off.\n");
+	printf("  -b or --bird:         parameter that is mandatory when specifying -g or --geocode. Valid choices are <country>, <region>, <city>, <latlon> and <everything>.\n");
+	printf("  -a or --anonymize:    flag to indicate anonymize the log, by default turned off.\n");
+	printf("  -i or --ip:           flag to indicate ip-filter the log, by default turned off. You can supply comma separated ip addresses, or comma-separated ip-ranges.\n");
 	printf("\n");
-	printf("-n or --num_fields    specify the number of fields that a log line contains. Default is 14.\n");
-	printf("-m or --maxmind:      specify alternative path to MaxMind database.\n");
-	printf("Current path to region database: %s\n", db_region_path);
-	printf("Current path to city database: %s\n", db_city_path);
+	printf("  -n or --num_fields    specify the number of fields that a log line contains. Default is 14.\n");
+	printf("  -m or --maxmind:      specify alternative path to MaxMind database.\n");
+	printf("    Current path to region database: %s\n", db_region_path);
+	printf("    Current path to city database: %s\n", db_city_path);
 	printf("\n");
-	printf("-c or --country_list: limit the log to particular countries, this should be a comma separated list of country codes. Valid country codes are the ISO 3166 country codes (see http://www.maxmind.com/app/iso3166). \n");
-	printf("-r or --regex:        the parameters -p and -u are interpreted as regular expressions. Regular expression searching is probably slower so substring matching is recommended.\n");
-	printf("-f or --force:        do not match on either domain, path, or ip address, basically turn filtering off. Can be useful when filtering for specific country.");
+	printf("  -c or --country_list: limit the log to particular countries, this should be a comma separated list of country codes. Valid country codes are the ISO 3166 country codes (see http://www.maxmind.com/app/iso3166). \n");
+	printf("  -r or --regex:        the parameters -p and -u are interpreted as regular expressions. Regular expression searching is probably slower so substring matching is recommended.\n");
+	printf("  -f or --force:        do not match on either domain, path, or ip address, basically turn filtering off. Can be useful when filtering for specific country.");
 	printf("\n");
-	printf("-v or --verbose:      output detailed debug information to stderr, not recommended in production.\n");
-	printf("-h or --help:         show this menu with all command line options.\n");
-	printf("-V or --version       show version info.\n");
+	printf("  -v or --verbose:      output detailed debug information to stderr, not recommended in production.\n");
+	printf("  -h or --help:         show this menu with all command line options.\n");
+	printf("  -V or --version       show version info.\n");
 }
 
 int main(int argc, char **argv){
@@ -1195,7 +1204,9 @@ int main(int argc, char **argv){
 
 		case 'h':
 			/* Show help to user */
+			version();
 			usage();
+			exit(EXIT_SUCCESS);
 			break;
 
 		case 'i':
