@@ -23,7 +23,7 @@
 #endif
 
 #define MAX_ERROR_MSG 0x1000
-#define VERSION_NUMBER 0.2.0
+#define VERSION_NUMBER 0.2.3
 #define VERSION_STRING_HELPER(X) #X
 #define VERSION_STRING(X) VERSION_STRING_HELPER(X)
 
@@ -36,6 +36,7 @@
 #include <sys/types.h>
 #include <regex.h>
 #include <stddef.h>
+#include <signal.h>
 
 #include <arpa/inet.h>
 #include <sys/socket.h>
@@ -99,6 +100,10 @@ Sample line, with the client IP address replaced with 1.2.3.4 to protect the inn
 sq18.wikimedia.org 1715898 1169499304.066 0 1.2.3.4 TCP_MEM_HIT/200 13208 GET http://en.wikipedia.org/wiki/Main_Page NONE/- text/html - - Mozilla/4.0%20(compatible;%20MSIE%206.0;%20Windows%20NT%205.1;%20.NET%20CLR%201.1.4322)
 
  */
+
+void die(){
+	exit(EXIT_FAILURE);
+}
 
 int determine_num_obs(char *raw_input, const char delimiter) {
 	/*
@@ -221,8 +226,7 @@ long convert_ip_to_long(char *ip_address, int initialization){
 			struct sockaddr_in6 *ipv6 = (struct sockaddr_in6 *)addr->ai_addr;
 			addr_tmp = &(ipv6->sin6_addr);
 			inet_ntop(addr->ai_family,addr_tmp, ipstr, sizeof ipstr);
-			fprintf(stderr, "IP6 address filtering is not yet implemented.\n");
-			fprintf(stderr, "Address:%s\n", ipstr);
+			//fprintf(stderr, "IP6 address filtering is not yet implemented. Address:%s\n", ipstr);
 			break;
 		}
 		default:
@@ -403,18 +407,23 @@ void init_domains(Filter *filters, char *domain_input, const char delimiter){
 
 int init_bird_level(char *bird){
 	int result;
-	if(strcmp(bird,"country")==0) {
-		result = COUNTRY;
-	} else if (strcmp(bird,"region")==0) {
-		result = REGION;
-	} else if (strcmp(bird,"city")==0) {
-		result = CITY;
-	} else if (strcmp(bird, "latlon")==0){
-		result = LAT_LON;
-	} else if (strcmp(bird, "everything")==0){
-		result = EVERYTHING;
+	if (bird){
+		if(strcmp(bird,"country")==0) {
+			result = COUNTRY;
+		} else if (strcmp(bird,"region")==0) {
+			result = REGION;
+		} else if (strcmp(bird,"city")==0) {
+			result = CITY;
+		} else if (strcmp(bird, "latlon")==0){
+			result = LAT_LON;
+		} else if (strcmp(bird, "everything")==0){
+			result = EVERYTHING;
+		} else {
+			fprintf(stderr, "%s is not a valid option for geocoding. <country>, <region>, <city> or <lonlat> (without the <> are valid choices).\n", bird);
+			exit(EXIT_FAILURE);
+		}
 	} else {
-		fprintf(stderr, "%s is not a valid option for geocoding. <country>, <region>, <city> or <lonlat> (without the <> are valid choices).\n", bird);
+		fprintf(stderr, "When you enter -g please also enter a valid -b switch.\n");
 		exit(EXIT_FAILURE);
 	}
 	return result;
@@ -753,18 +762,6 @@ void free_memory(Filter *filters, char *path_input, char *domain_input, int num_
 	if(gi){
 		GeoIP_delete(gi);
 	}
-
-//	if (path_input){
-//		int result = GeoIP_cleanup();
-//		if (verbose_flag){
-//			fprintf(stderr,"Path:%s\n", path_input);
-//			if (result==1){
-//				fprintf(stderr,"Closing geomind database was successful.\n");
-//			} else {
-//				fprintf(stderr,"Closing geomind database was NOT successful.\n");
-//			}
-//		}
-//	}
 
 	if (countries){
 		for(i=0;i<num_countries_filters;i++){
@@ -1129,7 +1126,7 @@ int main(int argc, char **argv){
 	char *bird = NULL;
 	int geo_param_supplied = -1;
 	int required_args = 0;
-	int num_fields = 14;
+	int num_fields = 16;
 
 	static struct option long_options[] = {
 			{"anonymize", no_argument, NULL, 'a'},
@@ -1147,6 +1144,8 @@ int main(int argc, char **argv){
 			{"verbose", no_argument, NULL, 'v'},
 			{0, 0, 0, 0}
 	};
+
+	signal(SIGINT,die);
 
 	int c;
 

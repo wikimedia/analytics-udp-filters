@@ -5,17 +5,15 @@ udp-filter \- start udp-filter
 .SH SYNOPSIS
 udp-filter [domain] [path] [ip-range] <OUTPUT.LOG>
 .SH DESCRIPTION
-udp\-filter 0.2.0
+udp\-filter 0.2.2
 Copyright \(co 2012 Wikimedia Foundation, Inc.
 This is free software; see the source copying conditions. There is NO
 warrant; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 .SH OPTIONS
-.TP
-\fB\-p\fR or \fB\-\-path\fR:
-the string or multiple strings separated by a comma that indicate what you want to match.
-.TP
-\fB\-d\fR or \fB\-\-domain\fR:
-the part of the domain name that you want to match. For example, 'en.m.' would match all English mobile Wikimedia projects.
+.IP
+Either \fB\-\-path\fR or \fB\-\-domain\fR are mandatory (you can use them both, the other command line parameters are optional.
+\fB\-p\fR or \fB\-\-path\fR:         the string or multiple strings separated by a comma that indicate what you want to match.
+\fB\-d\fR or \fB\-\-domain\fR:       the part of the domain name that you want to match. For example, 'en.m.' would match all English mobile Wikimedia projects.
 .TP
 \fB\-g\fR or \fB\-\-geocode\fR:
 flag to indicate geocode the log, by default turned off.
@@ -101,5 +99,3 @@ No known bugs, but let me know if you find any.
 Written by Diederik van Liere (dvanliere@wikimedia.org).
 Wikimedia's generic UDP filtering system.
 This new filter system replaces the old collection of filters written in C. It is highly customizable and can be fully configured using the command line.
-.PP
-Either \fB\-\-path\fR or \fB\-\-domain\fR are mandatory (you can use them both, the other command line parameters are optional.
