@@ -1,8 +1,8 @@
 bin_PROGRAMS = udp-filter
 udp_filter_SOURCES = src/udp-filter.c src/udp-filter.h src/countries.c src/countries.h
 if DEBUG
-	AM_CFLAGS = -g3 -O0 -Wall -pendantic
-	AM_CXXFLAGS = -g3 -O0 -Wall -pendantic
+	AM_CFLAGS = -g3 -O0 -Wall -pedantic
+	AM_CXXFLAGS = -g3 -O0 -Wall -pedantic
 else
 	AM_CLFAGS = -O3
 	AM_CXXFLAGS = -O3

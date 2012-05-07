@@ -2,7 +2,7 @@ Source: udp-filter
 Section: utils
 Priority: extra
 Maintainer: Diederik van Liere (Wikimedia Foundation) <dvanliere@wikimedia.org>
-Build-Depends: debhelper (>= 7.0.50~), libgeoip-dev, libgeoip1 (>= 1.4.6)
+Build-Depends: debhelper (>= 7.0.50~), autotools-dev, mime-support, mawk, libgeoip-dev
 Standards-Version: 3.9.1
 Vcs-Git: git://gerrit.wikimedia.org:29416/analytics/udp-filters.git
 Vcs-Browser: https://gerrit.wikimedia.org/r/gitweb?p=analytics/udp-filters.git
@@ -10,7 +10,7 @@ Homepage: http://www.mediawiki.org/wiki/Analytics/UDP-filters
 
 Package: udp-filter
 Architecture: any
-Depends: ${shlibs:Depends}, ${misc:Depends}
+Depends: libgeoip1 (>= 1.4.6), libc6 (>= 2.4)
 Description: <Wikimedia's udp-filter system.>
  WMF logs pageviews by listing to the udp2log daemon. udp-filter allows
  you to configure a filter and write particular pageviews, based on a
