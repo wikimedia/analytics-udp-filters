@@ -75,6 +75,8 @@ IpMatchType ipmatch = SIMPLE;
 
 int params[5];   // Increase this when you add a new filter to ScreenType enum.
 
+const int maximum_field_count = 32;  // maximum number of fields ever allowed in a log line.
+
 #define MAX_BUF_LENGTH 24
 
 /*
@@ -811,9 +813,9 @@ void free_memory(Filter *filters, char *path_input, char *domain_input, int num_
 	}
 }
 
-void parse(char *country_input, char *path_input, char *domain_input, char *ipaddress_input, char *bird, char *db_path, int num_fields) {
+void parse(char *country_input, char *path_input, char *domain_input, char *ipaddress_input, char *bird, char *db_path, int minimum_field_count) {
 	// GENERIC VARIABLES
-	char *fields[num_fields];	// the number of fields we expect in a single line
+	char *fields[maximum_field_count];	// the number of fields we expect in a single line
 	int num_filters =0;			// the total number of filters we detect from the command line
 	int num_domain_filters =0;  // the total number of domain filters
 	int num_path_filters =0 ;   // the total number of path filters
@@ -824,6 +826,8 @@ void parse(char *country_input, char *path_input, char *domain_input, char *ipad
 	int i;
 	int j;
 	int n;
+	
+	int field_count_this_line=0;  // number of fields found in the current line
 
 	char line[65534];
 	char *ipaddr;
@@ -987,7 +991,7 @@ void parse(char *country_input, char *path_input, char *domain_input, char *ipad
 		int found =0;
 		area = NULL;
 		//re-initialize the fields array.
-		for (j = 0; j < num_fields; j++) {
+		for (j = 0; j < maxium_field_count; j++) {
 			fields[j] = NULL;
 		}
 
@@ -1002,17 +1006,16 @@ void parse(char *country_input, char *path_input, char *domain_input, char *ipad
 			fields[i] = r;
 			strsep(&r, ws_delimiter);
 			i++;
-		} while (r != NULL && i < num_fields);
+		} while (r != NULL && i < maximum_field_count);
 
-		if (i!=num_fields || r != NULL){
-			/* line contained more or less than 14 fields, ignore this field.
-			 *  this check should be stricter, it should basically ignore any
-			 *  line with != 14 fields, however there are too many known issues
-			 *  with the current logging infrastructure that we know for a fact
-			 *  that we will run into longer lines.
+		if (i < minimum_field_count || r != NULL){
+			/* line contains less than minimum_field_count fields. ignore this line.
 			 */
 			continue;
 		}
+		
+		// we found i+1 fields in this line.
+		field_count_this_line = i+1;
 
 		ipaddr = fields[4];
 		url = fields[8];
@@ -1063,7 +1066,7 @@ void parse(char *country_input, char *path_input, char *domain_input, char *ipad
 				break;
 			}
 			// print output to stdout
-			for (i=0;i<num_fields;++i){
+			for (i=0;i<field_count_this_line;++i){
 				if (i!=0){
 					FPUTS(ws_delimiter, stdout);
 				}
@@ -1098,26 +1101,26 @@ void usage() {
 	printf("\nUsage: udp-filter [OPTION] ...\n\n");
 	printf("Options:\n");
 	printf("  Either --path or --domain are mandatory (you can use them both, the other command line parameters are optional.\n");
-	printf("  -p or --path:         the string or multiple strings separated by a comma that indicate what you want to match.\n");
-	printf("  -d or --domain:       the part of the domain name that you want to match. For example, 'en.m.' would match all English mobile Wikimedia projects.\n");
+	printf("  -p or --path:               the string or multiple strings separated by a comma that indicate what you want to match.\n");
+	printf("  -d or --domain:             the part of the domain name that you want to match. For example, 'en.m.' would match all English mobile Wikimedia projects.\n");
 	printf("\n");
-	printf("  -g or --geocode:      flag to indicate geocode the log, by default turned off.\n");
-	printf("  -b or --bird:         parameter that is mandatory when specifying -g or --geocode. Valid choices are <country>, <region>, <city>, <latlon> and <everything>.\n");
-	printf("  -a or --anonymize:    flag to indicate anonymize the log, by default turned off.\n");
-	printf("  -i or --ip:           flag to indicate ip-filter the log, by default turned off. You can supply comma separated ip addresses, or comma-separated ip-ranges.\n");
+	printf("  -g or --geocode:            flag to indicate geocode the log, by default turned off.\n");
+	printf("  -b or --bird:               parameter that is mandatory when specifying -g or --geocode. Valid choices are <country>, <region>, <city>, <latlon> and <everything>.\n");
+	printf("  -a or --anonymize:          flag to indicate anonymize the log, by default turned off.\n");
+	printf("  -i or --ip:                 flag to indicate ip-filter the log, by default turned off. You can supply comma separated ip addresses, or comma-separated ip-ranges.\n");
 	printf("\n");
-	printf("  -n or --num_fields    specify the number of fields that a log line contains. Default is 14.\n");
-	printf("  -m or --maxmind:      specify alternative path to MaxMind database.\n");
+	printf("  -n or --min-field-count:    specify the number of fields that a log line contains. Default is 14.\n");
+	printf("  -m or --maxmind:            specify alternative path to MaxMind database.\n");
 	printf("    Current path to region database: %s\n", db_region_path);
 	printf("    Current path to city database: %s\n", db_city_path);
 	printf("\n");
-	printf("  -c or --country_list: limit the log to particular countries, this should be a comma separated list of country codes. Valid country codes are the ISO 3166 country codes (see http://www.maxmind.com/app/iso3166). \n");
-	printf("  -r or --regex:        the parameters -p and -u are interpreted as regular expressions. Regular expression searching is probably slower so substring matching is recommended.\n");
-	printf("  -f or --force:        do not match on either domain, path, or ip address, basically turn filtering off. Can be useful when filtering for specific country.");
+	printf("  -c or --country_list:       limit the log to particular countries, this should be a comma separated list of country codes. Valid country codes are the ISO 3166 country codes (see http://www.maxmind.com/app/iso3166). \n");
+	printf("  -r or --regex:              the parameters -p and -u are interpreted as regular expressions. Regular expression searching is probably slower so substring matching is recommended.\n");
+	printf("  -f or --force:              do not match on either domain, path, or ip address, basically turn filtering off. Can be useful when filtering for specific country.");
 	printf("\n");
-	printf("  -v or --verbose:      output detailed debug information to stderr, not recommended in production.\n");
-	printf("  -h or --help:         show this menu with all command line options.\n");
-	printf("  -V or --version       show version info.\n");
+	printf("  -v or --verbose:            output detailed debug information to stderr, not recommended in production.\n");
+	printf("  -h or --help:               show this menu with all command line options.\n");
+	printf("  -V or --version             show version info.\n");
 }
 
 int main(int argc, char **argv){
@@ -1129,7 +1132,12 @@ int main(int argc, char **argv){
 	char *bird = NULL;
 	int geo_param_supplied = -1;
 	int required_args = 0;
-	int num_fields = 14;
+	
+	// Expected minimum number of fields in a line.
+	// There  can be no fewer than this, but no more than
+	// maximum_field_count space separated fields in a long line.
+	// Anything outside of this range will be discarded.
+	int minimum_field_count = 14;
 
 	static struct option long_options[] = {
 			{"anonymize", no_argument, NULL, 'a'},
@@ -1141,7 +1149,7 @@ int main(int argc, char **argv){
 			{"help", no_argument, NULL, 'h'},
 			{"ip", required_argument, NULL, 'i'},
 			{"maxmind", required_argument, NULL, 'm'},
-			{"num_fields", required_argument, NULL, 'n'},
+			{"min-field-count", required_argument, NULL, 'n'},
 			{"path", required_argument, NULL, 'p'},
 			{"regex", no_argument, NULL, 'r'},
 			{"verbose", no_argument, NULL, 'v'},
@@ -1187,7 +1195,7 @@ int main(int argc, char **argv){
 			break;
 
 		case 'n':
-			num_fields = atoi(optarg);
+			minimum_field_count = atoi(optarg);
 			break;
 
 		case 'f':
@@ -1210,7 +1218,7 @@ int main(int argc, char **argv){
 			break;
 
 		case 'i':
-			/* Enable filternig by ip-address or ip-range */
+			/* Enable filtering by ip-address or ip-range */
 			params[IP_FILTER] =1;
 			ipaddress_input = optarg;
 			required_args++;
@@ -1246,6 +1254,16 @@ int main(int argc, char **argv){
 			exit(EXIT_FAILURE);
 		}
 	}
+	
+	// minimum_field_count cannot be greater than maximum_field_count
+	if (minimum_field_count > maximum_field_count)
+	{
+		fprintf(stderr,"min-field-count (%i) cannot be greater than %i.\n", minimum_field_count, maximum_field_count);
+		version();
+		usage();
+		exit(EXIT_FAILURE);
+	}
+	
 	if (geo_param_supplied==-1 && params[GEO_FILTER] ==1){
 		fprintf(stderr,"You supplied the -g parameter without specifying the -b parameter.\n");
 		exit(EXIT_FAILURE);

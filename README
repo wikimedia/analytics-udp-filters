@@ -5,7 +5,7 @@ This code has been released under the GPL2.
 
 =Dependencies=
 libgeoip-dev is a dependency that needs to be installed if you are going to
-comile manually.
+compile manually.
 
 =Installation=
 
