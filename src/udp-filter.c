@@ -23,7 +23,7 @@
 #endif
 
 #define MAX_ERROR_MSG 0x1000
-#define VERSION_NUMBER 0.2.3
+#define VERSION_NUMBER 0.2.4
 #define VERSION_STRING_HELPER(X) #X
 #define VERSION_STRING(X) VERSION_STRING_HELPER(X)
 
@@ -988,7 +988,7 @@ void parse(char *country_input, char *path_input, char *domain_input, char *ipad
 		int found =0;
 		area = NULL;
 		//re-initialize the fields array.
-		for (j = 0; j < maxium_field_count; j++) {
+		for (j = 0; j < maximum_field_count; j++) {
 			fields[j] = NULL;
 		}
 
@@ -1011,8 +1011,8 @@ void parse(char *country_input, char *path_input, char *domain_input, char *ipad
 			continue;
 		}
 		
-		// we found i+1 fields in this line.
-		field_count_this_line = i+1;
+		// we found i fields in this line.
+		field_count_this_line = i;
 
 		ipaddr = fields[4];
 		url = fields[8];
@@ -1111,7 +1111,7 @@ void usage() {
 	printf("    Current path to region database: %s\n", db_region_path);
 	printf("    Current path to city database: %s\n", db_city_path);
 	printf("\n");
-	printf("  -c or --country_list:       limit the log to particular countries, this should be a comma separated list of country codes. Valid country codes are the ISO 3166 country codes (see http://www.maxmind.com/app/iso3166). \n");
+	printf("  -c or --country-list:       limit the log to particular countries, this should be a comma separated list of country codes. Valid country codes are the ISO 3166 country codes (see http://www.maxmind.com/app/iso3166). \n");
 	printf("  -r or --regex:              the parameters -p and -u are interpreted as regular expressions. Regular expression searching is probably slower so substring matching is recommended.\n");
 	printf("  -f or --force:              do not match on either domain, path, or ip address, basically turn filtering off. Can be useful when filtering for specific country.");
 	printf("\n");
@@ -1268,7 +1268,7 @@ int main(int argc, char **argv){
 		exit(EXIT_FAILURE);
 	}
 	if (required_args>=1){
-		parse(country_input, path_input, domain_input, ipaddress_input, bird, db_path, num_fields);
+		parse(country_input, path_input, domain_input, ipaddress_input, bird, db_path, minimum_field_count);
 	} else{
 		usage();
 	}

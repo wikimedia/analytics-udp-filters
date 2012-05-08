@@ -1,3 +1,12 @@
+udp-filter (0.2.3)
+  * Modified behavior of -n --num_fields.  This is now -n --min-field-count.
+    There must me more fields in a line than this, otherwise the line will
+    be discarded.  The default is 14.  This was done so that we may add
+    new fields to the log lines without needing to recompile and redeploy
+    in use udp filters at the same time.
+  * Changed --country_list to --country-list (with hyphen) to be more
+    consistent with usual command line option conventions.
+
 udp-filter (0.2.2) stable; urgency=low
 
   * Tim rewrote append_char function Removed exotic for/loop Replaced all 
