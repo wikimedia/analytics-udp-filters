@@ -37,10 +37,23 @@ typedef enum SearchType{
 	REGEX,    //regular expression matching.
 }SearchType;
 
+
+
+/*
+ * These are bit operable values.
+ * Examples:
+ *   recode = (GEO | ANONYMIZE);
+ *     (recode & GEO) == true # need to geocode.
+ *     (recode & ANONYMIZE) == true # need to anonymize.
+ *  recode = GEO;
+ *     (recode & GEO) == true # need to geocode.
+ *     (recode & ANONYMIZE) == false # do not need to anonymize.
+ * etc.
+ */
 typedef enum RecodeType{
-	NO,        // No recoding of a field, default value.
-	GEO,       // this flag indicates whether the ip address should be geocoded.
-	ANONYMIZE, // current ip adddress should be replaced with 0.0.0.0
+	NO        = 0,        // No recoding of a field, default value.
+	GEO       = 1,        // this flag indicates whether the IP address should be geocoded.
+	ANONYMIZE = 2,        // current IP adddress should be replaced with 0.0.0.0
 }RecodeType;
 
 typedef enum BirdType{
