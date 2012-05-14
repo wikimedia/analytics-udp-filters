@@ -60,17 +60,16 @@
 char anonymous_ip[] = "0.0.0.0";
 char unknown_geography[] = "XX";
 const char comma_delimiter =',';
-const char ws_delimiter[] = " ";
+const char ws_delimiter[] = "\t";
 const char fs_delimiter = '/';
 const char us_delimiter = '-';
 const int num_predefined_filters = (GEO_FILTER - NO_FILTER) +1;
 int verbose_flag = 0;       // this flag indicates whether we should output detailed debug messages, default is off.
 
 // TODO: change these to a more sane location.
-char *db_country_path = "/var/log/squid/filters/GeoIPLibs/GeoIP.dat";
-char *db_city_path = "/var/log/squid/filters/GeoIPLibs/GeoIPCity.dat";
-char *db_region_path = "/var/log/squid/filters/GeoIPLibs/GeoIPRegion.dat";
-
+char *db_country_path = "/usr/share/GeoIP/GeoIP.dat";
+char *db_city_path    = "/usr/share/GeoIP/GeoIPCity.dat";
+char *db_region_path  = "/usr/share/GeoIP/GeoIPRegion.dat";
 
 SearchType search = STRING;
 RecodeType recode = NO;
