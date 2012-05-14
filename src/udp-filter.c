@@ -60,7 +60,7 @@
 char anonymous_ip[] = "0.0.0.0";
 char unknown_geography[] = "XX";
 const char comma_delimiter =',';
-const char ws_delimiter[] = "\t";
+const char ws_delimiter[] = " ";
 const char fs_delimiter = '/';
 const char us_delimiter = '-';
 const int num_predefined_filters = (GEO_FILTER - NO_FILTER) +1;
