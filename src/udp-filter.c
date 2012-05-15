@@ -63,10 +63,10 @@ const char comma_delimiter =',';
 const char ws_delimiter[] = " ";
 const char fs_delimiter = '/';
 const char us_delimiter = '-';
-const int num_predefined_filters = (GEO_FILTER - NO_FILTER) +1;
+const int num_predefined_filters = (HTTP_STATUS_FILTER - NO_FILTER) +1;
 int verbose_flag = 0;       // this flag indicates whether we should output detailed debug messages, default is off.
 
-// TODO: change these to a more sane location.
+// Default paths to GeoIP databases.
 char *db_country_path = "/usr/share/GeoIP/GeoIP.dat";
 char *db_city_path    = "/usr/share/GeoIP/GeoIPCity.dat";
 char *db_region_path  = "/usr/share/GeoIP/GeoIPRegion.dat";
@@ -75,7 +75,7 @@ SearchType search = STRING;
 RecodeType recode = NO;
 IpMatchType ipmatch = SIMPLE;
 
-int params[5];   // Increase this when you add a new filter to ScreenType enum.
+int params[6];   // Increase this when you add a new filter to ScreenType enum.
 
 const int maximum_field_count = 32;  // maximum number of fields ever allowed in a log line.
 
@@ -299,6 +299,10 @@ void init_ip_addresses(Filter *filters, char *ipaddress_input, const char delimi
 }
 
 
+// TODO.  DRY the following 3 functions. 
+// It's silly to have so much similar logic copy/pasted here.
+
+
 void init_paths(Filter *filters, char *path_input, const char delimiter) {
 	/* path_input is a string *excluding* the full qualified domain name
 	 * path_input can be comma delimited, so we first need to determine the
@@ -415,6 +419,67 @@ void init_domains(Filter *filters, char *domain_input, const char delimiter){
 	free(input);
 }
 
+
+void init_http_status(Filter *filters, char *http_status_input, const char delimiter){
+	/*
+	 * http_status_input is a comma separated list of http response status codes
+	 * - 200
+	 * - 400
+	 * - 404
+	 * - 501
+	 */
+	int i=0;
+	int error=0;
+
+	char *input = strdup(http_status_input);
+	char *startToken = input;
+	for (;;){
+
+		char *endToken;
+		endToken = strchr(startToken, delimiter);
+		if (endToken) {
+			*endToken='\0';
+		}
+
+		switch(search){
+			case STRING: {
+				size_t s = strlen(startToken) + 1;
+				filters[i].http_status.string= malloc(sizeof(char)*s);
+				if(filters[i].http_status.string==NULL) {
+					error=1;
+					break;
+				}
+				strcpy(filters[i].http_status.string,startToken);
+				filters[i].searchtype = HTTP_STATUS_FILTER;
+				break;
+
+			}
+			case REGEX:{
+				filters[i].http_status.regex= malloc(sizeof(regex_t));
+				if (filters[i].http_status.regex==NULL){
+					error=1;
+					break;
+				}
+				filters[i].http_status.regex = init_regex(startToken);
+				filters[i].searchtype = HTTP_STATUS_FILTER;
+				break;
+			}
+		}
+		if (!endToken){
+			break;
+		}
+		i++;
+		startToken = endToken + 1;
+
+	}
+	if (error==1){
+		fprintf(stderr, "HTTP_STATUS: Could not allocate memory. This should never happen");
+		exit(EXIT_FAILURE);
+	}
+	free(input);
+}
+
+
 int init_bird_level(char *bird){
 	int result;
 	if (bird){
@@ -459,6 +524,26 @@ char *extract_domain(char *url) {
 	memcpy(buffer, domainStart+2, domainLength);
 	buffer[domainLength] = '\0';
 	return buffer;
+}
+
+char *extract_status(char *http_status_field) {
+	if (http_status_field==NULL){
+		return NULL;
+	}
+	// if there is a / in the field, then 
+	// return a pointer pointing to the string
+	// starting immediately after the /.
+	char *http_status = strstr(http_status_field, "/") + 1;
+	if (http_status != NULL){
+		// return the string starting after the /
+		return http_status;
+	}
+	else
+	{
+		// else assume the status field in the line 
+		// is just a http response status
+		return http_status_field;
+	}
 }
 
 int match_ip_address(char *ip_address,Filter *filters, int num_filters){
@@ -592,6 +677,57 @@ int match_domain(char *url, Filter *filters, int num_domain_filters){
 							if (verbose_flag){
 								char errbuf[100];
 								regerror(result, filters[j].domain.regex, errbuf, 100);
+								fprintf(stderr, "Encountered error while regex matching: %s\n", errbuf);
+							}
+						}
+					}
+					break;
+
+					default:
+						break;
+					}
+				}
+			}
+		}
+	return 0;
+}
+
+int match_http_status(char *http_status_field, Filter *filters, int num_http_status_filters){
+	/*
+	 * Check whether a given http response status code matches the filter criteria
+	 * @param t http_status field
+	 * @param filters Array of Filters containg either string or regular
+	 * expressions to macth
+	 * @return 1 if the http status matches, 0 otherwise
+	 */
+	char* http_status;
+	int j;
+	regmatch_t pmatch[1];
+
+	if (num_http_status_filters > 0){
+		/* this for-loop checks if the url contains the domain string
+		 * if it does return 1 if there is no additional filtering, or
+		 * else break to next loop.
+		 */
+		http_status = extract_status(http_status_field);
+		if (http_status !=NULL){
+			for (j=0; j<num_http_status_filters; ++j){
+				switch(search){
+					case STRING:
+						if (strstr(http_status, filters[j].http_status.string) != NULL) {
+							return 1;
+						}
+						break;
+
+					case REGEX: {
+						int result = regexec(filters[j].http_status.regex, http_status, 0, pmatch, 0);
+						if (result ==0) {
+							return 1;
+						}
+						if (result >0){
+							if (verbose_flag){
+								char errbuf[100];
+								regerror(result, filters[j].http_status.regex, errbuf, 100);
 								fprintf(stderr, "Encountered error while regex matching: %s\n", errbuf);
 							}
 						}
@@ -821,7 +957,7 @@ void free_memory(Filter *filters, char *path_input, char *domain_input, int num_
 	}
 }
 
-void parse(char *country_input, char *path_input, char *domain_input, char *ipaddress_input, char *bird, char *db_path, int minimum_field_count) {
+void parse(char *country_input, char *path_input, char *domain_input, char *ipaddress_input, char *http_status_input, char *bird, char *db_path, int minimum_field_count) {
 	// GENERIC VARIABLES
 	char *fields[maximum_field_count];	// the number of fields we expect in a single line
 	int num_filters =0;			// the total number of filters we detect from the command line
@@ -829,6 +965,7 @@ void parse(char *country_input, char *path_input, char *domain_input, char *ipad
 	int num_path_filters =0 ;   // the total number of path filters
 	int num_ipaddress_filters=0;// the total number of ipaddress filter
 	int num_countries_filters=0;// the total number countries we want to restrict the filtering
+	int num_http_status_filters=0; // the total number of http status we want to restrict the filtering.  
 	int required_hits =0;
 	int bird_int = 0;
 	int i;
@@ -840,6 +977,7 @@ void parse(char *country_input, char *path_input, char *domain_input, char *ipad
 	char line[65534];
 	char *ipaddr;
 	char *url;
+	char *http_status;
 
 	// DETERMINE NUMBER OF FILTERS
 	for(n=0; n<num_predefined_filters; n++){
@@ -879,10 +1017,18 @@ void parse(char *country_input, char *path_input, char *domain_input, char *ipad
 				}
 			}
 			break;
+		case 5: // HTTP_STATUS_FILTER
+			if(params[n] ==1){
+				if(http_status_input != NULL && strlen(http_status_input) >1){
+					num_http_status_filters = determine_num_obs(http_status_input, comma_delimiter);
+					required_hits+=1;
+				}
+			}		
+			break;
 		}
 	}
 
-	num_filters = num_path_filters+num_domain_filters+num_ipaddress_filters+num_countries_filters;
+	num_filters = num_path_filters+num_domain_filters+num_ipaddress_filters+num_countries_filters+num_http_status_filters;
 	Filter filters[num_filters];
 
 	// GEO_FILTER INITIALIZATION
@@ -986,12 +1132,19 @@ void parse(char *country_input, char *path_input, char *domain_input, char *ipad
 				country_input =NULL;
 			}
 			break;
+		case 5: // HTTP_STATUS_FILTER
+			if(params[n] ==1){
+				init_http_status(filters, http_status_input, comma_delimiter);
+			} else {
+				http_status_input = NULL;
+			}
+			break;
 		}
 	}
 
 	if (verbose_flag){
-		fprintf(stderr, "num_path_filters:%d\tnum_domain_filters:%d\t ip_address_count:%d\tcountries_count:%d\n",\
-			num_path_filters,num_domain_filters,num_ipaddress_filters,num_countries_filters);
+		fprintf(stderr, "num_path_filters:%d\tnum_domain_filters:%d\tnum_http_status_filters:%d\tip_address_count:%d\tcountries_count:%d\n",\
+			num_path_filters,num_domain_filters,num_http_status_filters,num_ipaddress_filters,num_countries_filters);
 	}
 
 
@@ -1025,8 +1178,9 @@ void parse(char *country_input, char *path_input, char *domain_input, char *ipad
 		// we found i fields in this line.
 		field_count_this_line = i;
 
-		ipaddr = fields[4];
-		url = fields[8];
+		ipaddr      = fields[4];
+		http_status = fields[5];
+		url         = fields[8];
 
 		if (url != NULL) {
 			if (params[NO_FILTER] == 1){
@@ -1039,6 +1193,10 @@ void parse(char *country_input, char *path_input, char *domain_input, char *ipad
 
 			if (params[PATH_FILTER] == 1){
 				found += match_path(url, filters, num_path_filters);
+			}
+			
+			if (params[HTTP_STATUS_FILTER] == 1){
+				found += match_http_status(http_status, filters, num_http_status_filters);
 			}
 
 			if (params[IP_FILTER] == 1){
@@ -1085,7 +1243,7 @@ void parse(char *country_input, char *path_input, char *domain_input, char *ipad
 		}
 
 		if (verbose_flag) {
-			fprintf(stderr, "ipaddr: '%s', url: '%s'\n", ipaddr, url);
+			fprintf(stderr, "ipaddr: '%s', url: '%s, status: %s'\n", ipaddr, url, http_status);
 		}
 
 	}
@@ -1124,7 +1282,8 @@ void usage() {
 	printf("    Current path to city database: %s\n", db_city_path);
 	printf("\n");
 	printf("  -c or --country-list:       limit the log to particular countries, this should be a comma separated list of country codes. Valid country codes are the ISO 3166 country codes (see http://www.maxmind.com/app/iso3166). \n");
-	printf("  -r or --regex:              the parameters -p and -u are interpreted as regular expressions. Regular expression searching is probably slower so substring matching is recommended.\n");
+	printf("  -s or --http-status:        match only lines with these HTTP response status code(s).\n");
+	printf("  -r or --regex:              the parameters -p, -u and -s are interpreted as regular expressions. Regular expression searching is probably slower so substring matching is recommended.\n");
 	printf("  -f or --force:              do not match on either domain, path, or ip address, basically turn filtering off. Can be useful when filtering for specific country.");
 	printf("\n");
 	printf("  -v or --verbose:            output detailed debug information to stderr, not recommended in production.\n");
@@ -1137,6 +1296,7 @@ int main(int argc, char **argv){
 	char *path_input = NULL;
 	char *domain_input = NULL;
 	char *ipaddress_input = NULL;
+	char *http_status_input = NULL;
 	char *db_path = NULL;
 	char *bird = NULL;
 	int geo_param_supplied = -1;
@@ -1157,6 +1317,7 @@ int main(int argc, char **argv){
 			{"geocode", no_argument, NULL, 'g'},
 			{"help", no_argument, NULL, 'h'},
 			{"ip", required_argument, NULL, 'i'},
+			{"http-status", required_argument, NULL, 's'},
 			{"maxmind", required_argument, NULL, 'm'},
 			{"min-field-count", required_argument, NULL, 'n'},
 			{"path", required_argument, NULL, 'p'},
@@ -1169,7 +1330,7 @@ int main(int argc, char **argv){
 
 	int c;
 
-	while((c = getopt_long(argc, argv, "ab:c:d:m:n:fghi:rp:vV", long_options, NULL)) != -1) {
+	while((c = getopt_long(argc, argv, "ab:c:d:m:n:s:fghi:rp:vV", long_options, NULL)) != -1) {
 		// c,d,m,i,p have mandatory arguments
 		switch(c)
 		{
@@ -1235,6 +1396,12 @@ int main(int argc, char **argv){
 			required_args++;
 			break;
 
+		case 's':
+			/* Enable filtering by HTTP response status code */
+			params[HTTP_STATUS_FILTER] = 1;
+			http_status_input = optarg;
+			required_args++;
+			break;
 		case 'r':
 			/* indicate whether we should treat the search string as a regular
 			 * expression or not, default is false
@@ -1281,7 +1448,7 @@ int main(int argc, char **argv){
 	}
 	
 	if (required_args>=1){
-		parse(country_input, path_input, domain_input, ipaddress_input, bird, db_path, minimum_field_count);
+		parse(country_input, path_input, domain_input, ipaddress_input, http_status_input, bird, db_path, minimum_field_count);
 	} else{
 		usage();
 	}
