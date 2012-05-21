@@ -1,7 +1,12 @@
-udp-filter (0.2.4)
-  * Added --http-status option to filter by HTTP response code.
+udp-filter (0.2.4) stable; urgency=low
 
-udp-filter (0.2.3)
+  * Added --http-status option to filter by HTTP response code.
+  * This version was written by Andrew Otto (aotto@wikimedia.org)
+
+ -- Diederik van Liere (Wikimedia Foundation) <dvanliere@wikimedia.org>  Mon, 21 May 2012 17:44:20 -0500
+
+udp-filter (0.2.3) stable; urgency=low
+
   * Modified behavior of -n --num_fields.  This is now -n --min-field-count.
     There must me more fields in a line than this, otherwise the line will
     be discarded.  The default is 14.  This was done so that we may add
@@ -9,6 +14,9 @@ udp-filter (0.2.3)
     in use udp filters at the same time.
   * Changed --country_list to --country-list (with hyphen) to be more
     consistent with usual command line option conventions.
+  * This version was written by Andrew Otto (aotto@wikimedia.org)
+
+ -- Diederik van Liere (Wikimedia Foundation) <dvanliere@wikimedia.org>  Mon, 21 May 2012 17:42:30 -0500
 
 udp-filter (0.2.2) stable; urgency=low
 

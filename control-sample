@@ -10,7 +10,7 @@ Homepage: http://www.mediawiki.org/wiki/Analytics/UDP-filters
 
 Package: udp-filter
 Architecture: any
-Depends: libgeoip1 (>= 1.4.6), libc6 (>= 2.4)
+Depends: ${shlibs:Depends}, ${misc:Depends}, libgeoip1 (>= 1.4.6)
 Description: <Wikimedia's udp-filter system.>
  WMF logs pageviews by listing to the udp2log daemon. udp-filter allows
  you to configure a filter and write particular pageviews, based on a

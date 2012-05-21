@@ -1,13 +1,21 @@
 from fabric.api import run, env, put, local, settings
 from datetime import datetime
+from socket import gethostname
 from os import getcwd
 import subprocess
 
-email = 'dvanliere@wikimedia.org'
-env.port = 222
-env.hosts = ['wikilytics.org']
-#env.hosts = ['192.168.2.24']
 
+
+email = 'dvanliere@wikimedia.org'
+
+def prod():
+	host = gethostname()
+	if host == 'drdee':
+		env.hosts = ['192.168.2.24']
+	else:
+		env.port = 222
+		env.hosts = ['wikilytics.org']
+	
 def collect_params():
 	params ={}
 	p = subprocess.Popen(['./udp-filter', '-V'], shell=False, stdout=subprocess.PIPE)
@@ -15,12 +23,6 @@ def collect_params():
 	version = stdout.split("\n")[0]
 	version = version.split(" ")[1]
 	print "Version: %s was detected." % version
-	# version = None
-	# default = '0.2.0'
-	# while not version:
-	# 	version = raw_input("Please enter version info (default: %s):" % default)
-	# 	if version == "":
-	# 		version = default
 	return version
 
 def build_remote(target_dir, target_gz, target_tar, version, year, month, day):
@@ -71,8 +73,8 @@ def write_control_file(version):
 	fh.write('Package: udp-filter\n')
 	fh.write('Architecture: any\n')
 	#fh.write('Version: %s\n' % version)	
-	fh.write('Depends: libgeoip1 (>= 1.4.6), libc6 (>= 2.4)\n')
-	#fh.write('Depends: ${shlibs:Depends}, ${misc:Depends}\n')
+	#fh.write('Depends: libgeoip1 (>= 1.4.6), libc6 (>= 2.4)\n')
+	fh.write('Depends: ${shlibs:Depends}, ${misc:Depends}, libgeoip1 (>= 1.4.6)\n')
 	fh.write("Description: <Wikimedia's udp-filter system.>\n")
 	fh.write(" WMF logs pageviews by listing to the udp2log daemon. udp-filter allows\n") 
 	fh.write(" you to configure a filter and write particular pageviews, based on a\n")
