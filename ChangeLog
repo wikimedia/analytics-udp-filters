@@ -1,3 +1,6 @@
+udp-filter (0.2.4)
+  * Added --http-status option to filter by HTTP response code.
+
 udp-filter (0.2.3)
   * Modified behavior of -n --num_fields.  This is now -n --min-field-count.
     There must me more fields in a line than this, otherwise the line will

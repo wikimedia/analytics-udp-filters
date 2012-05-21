@@ -8,15 +8,20 @@ ip_filter3=$(cat example.log | ./udp-filter -i 216.38.130.161,0.0.0.0 | wc -l)
 ip_filter4=$(cat example.log | ./udp-filter -i 127.0.0.1-192.168.0.0,216.0.0.0-255.0.0.0 | wc -l)
 
 domain_filter1=$(cat example.log | ./udp-filter -d waka | wc -l)
-domain_filter2=$(cat example.log | ./udp-filter -d wiki -g -m geoip/GeoIP.dat -c US -b country | wc -l)
+domain_filter2=$(cat example.log | ./udp-filter -d wiki -g -c US -b country | wc -l)
 domain_filter3=$(cat example.log | ./udp-filter -d "([wiki])" -r | wc -l)
 
 anonymize_filter1=$(cat example.log | ./udp-filter -a -f | wc -l)
 
-geo_filter1=$(cat example.log | ./udp-filter -g -f -m geoip/GeoIP.dat -b country | wc -l)
-geo_filter2=$(cat example.log | ./udp-filter -d wiki -g -m geoip/GeoIP.dat -c US,FR -b country | wc -l)
+geo_filter1=$(cat example.log | ./udp-filter -g -f -b country | wc -l)
+geo_filter2=$(cat example.log | ./udp-filter -d wiki -g -c US,FR -b country | wc -l)
 
 path_filter1=$(cat example.log | ./udp-filter -p Manual | wc -l)
+
+status_filter1=$(cat example.log | ./udp-filter -s 504 | wc -l)
+status_filter2=$(cat example.log | ./udp-filter -s 50 | wc -l)
+status_filter3=$(cat example.log | ./udp-filter -s 400,200 | wc -l)
+
 
 red="\033[31m"
 green="\033[32m"
@@ -48,7 +53,7 @@ else
 	cecho "Fail" $red
 fi 
 
-if [ $ip_filter2 -eq 3 ]; then
+if [ $ip_filter2 -eq 4 ]; then
 	cecho "Pass" $green
 else
 	cecho "Fail" $red
@@ -60,7 +65,7 @@ else
 	cecho "Fail" $red
 fi
 
-if [ $ip_filter4 -eq 1 ]; then
+if [ $ip_filter4 -eq 2 ]; then
 	cecho "Pass" $green
 else
 	cecho "Fail" $red
@@ -78,19 +83,19 @@ else
         cecho "Fail" $red
 fi
 
-if [ $domain_filter3 -eq 2 ]; then
+if [ $domain_filter3 -eq 3 ]; then
         cecho "Pass" $green
 else
         cecho "Fail" $red
 fi
 
-if [ $anonymize_filter1 -eq 4 ]; then
+if [ $anonymize_filter1 -eq 5 ]; then
         cecho "Pass" $green
 else
         cecho "Fail" $red
 fi
 
-if [ $geo_filter1 -eq 4 ]; then
+if [ $geo_filter1 -eq 5 ]; then
         cecho "Pass" $green
 else
         cecho "Fail" $red
@@ -109,6 +114,23 @@ else
         cecho "Fail" $red
 fi
 
+if [ $status_filter1 -eq 1 ]; then
+        cecho "Pass" $green
+else
+        cecho "Fail" $red
+fi
+
+if [ $status_filter2 -eq 2 ]; then
+        cecho "Pass" $green
+else
+        cecho "Fail" $red
+fi
+
+if [ $status_filter3 -eq 3 ]; then
+        cecho "Pass" $green
+else
+        cecho "Fail" $red
+fi
 
 
 
