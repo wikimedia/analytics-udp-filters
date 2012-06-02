@@ -1,5 +1,5 @@
 PACKAGE=udp-filter
-VERSION=0.2.2
+VERSION=0.2.4
 EMAIL=dvanliere@wikimedia.org
 
 AC_INIT([udp-filter],[0.2.2],[dvanliere@wikimedia.org])
