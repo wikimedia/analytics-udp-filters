@@ -751,6 +751,9 @@ char *geo_lookup(GeoIP *gi, char *ipaddr, int bird) {
 	 */
 	static char area[MAX_BUF_LENGTH];
 
+	// set the charset to UTF8
+	GeoIP_set_charset(gi, GEOIP_CHARSET_UTF8);
+
 	switch(bird){
 		case COUNTRY: {
 			const char *country= GeoIP_country_code_by_addr(gi, ipaddr);
@@ -788,12 +791,8 @@ char *geo_lookup(GeoIP *gi, char *ipaddr, int bird) {
 					strncpy(area, unknown_geography, MAX_BUF_LENGTH);
 				} else {
 					int len = strlen(grecord->city);
-					if (grecord->charset == 0) {
-						city = _GeoIP_iso_8859_1__utf8(grecord->city);
-						mustFreeCity = 1;
-					} else {
-						city = grecord->city;
-					}
+					city = strdup(grecord->city);
+					mustFreeCity = 1;
 					strncpy(area,city, MAX_BUF_LENGTH);
 					replace_space_with_underscore(area, len);
 				}
@@ -826,16 +825,11 @@ char *geo_lookup(GeoIP *gi, char *ipaddr, int bird) {
 			float lat = 0.0, lon = 0.0;
 			grecord = GeoIP_record_by_addr(gi, ipaddr);
 			if (grecord != NULL) {
-				if (city != NULL) {
-					if (grecord->charset == 0) {
-						city = _GeoIP_iso_8859_1__utf8(grecord->city);
-						mustFreeCity = 1;
-					} else {
-						city = strdup(grecord->city);
-						mustFreeCity = 1;
-					}
-					replace_space_with_underscore(city, strlen(city));
+				if (grecord->city != NULL) {
+					city = strdup(grecord->city);
+					mustFreeCity = 1;
 				}
+				replace_space_with_underscore(city, strlen(city));
 
 				if (grecord->region != NULL) {
 					region = grecord->region;
@@ -845,10 +839,13 @@ char *geo_lookup(GeoIP *gi, char *ipaddr, int bird) {
 				}
 				lat = grecord->latitude;
 				lon = grecord->longitude;
+			}
+			snprintf(area, MAX_BUF_LENGTH, "%s|%s|%s|%f,%f", country, region, city, lat, lon);
 
+			if (grecord != NULL) {
 				GeoIPRecord_delete(grecord);
 			}
-			snprintf(area, MAX_BUF_LENGTH, "%s|%s|%f,%f", country, city, lat, lon);
+
 			if (mustFreeCity) {
 				free(city);
 			}
