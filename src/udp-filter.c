@@ -494,7 +494,7 @@ int init_bird_level(char *bird){
 		} else if (strcmp(bird, "everything")==0){
 			result = EVERYTHING;
 		} else {
-			fprintf(stderr, "%s is not a valid option for geocoding. <country>, <region>, <city> or <lonlat> (without the <> are valid choices).\n", bird);
+			fprintf(stderr, "%s is not a valid option for geocoding. <country>, <region>, <city> or <latlon> (without the <> are valid choices).\n", bird);
 			exit(EXIT_FAILURE);
 		}
 	} else {
