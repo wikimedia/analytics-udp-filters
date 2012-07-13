@@ -121,3 +121,6 @@ the url contains SOPA and the visitor comes from the US.
 ./udp_filter -d en.wikipedia -v         this turns on verbose logging and can 
 help in debugging and verifying that the appropriate hits are being logged.
 This setting is not recommended in production.
+
+./udp_filter -i 71.190.22.0/24,2607:f0d0:1002:51::/64          this will filter for logs with IP addresses that match the given CIDR ranges.  IPv4 and IPv6 CIDR blocks are supported.
+
