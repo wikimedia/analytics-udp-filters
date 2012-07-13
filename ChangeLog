@@ -2,8 +2,9 @@ udp-filter (0.2.5) stable; urgency=low
 
   * Using libcidr for IP address filtering.
   * Calling GeoIP_set_charset instead of _iso_8859_1__utf8 to get geocoded results in UTF8.
+  * Added Debian packaging.
 
- -- Andrew Otto (Wikimedia Foundation) <otto@wikimedia.org>  Mon, 13 Jul 2012 15:30:00 -0500
+ -- Andrew Otto (wmvm) <otto@wikimedia.org>  Mon, 13 Jul 2012 15:30:00 -0500
 
 udp-filter (0.2.4) stable; urgency=low
 
