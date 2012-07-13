@@ -10,5 +10,14 @@ endif
 
 AM_CPPFLAGS = $(GEOIP_CFLAGS)
 udp_filter_LDADD = $(GEOIP_LIBS) $(DEPS_LIBS) -lGeoIP -lcidr
-
 #If you know a way how to automatically detect a library, then please contact me or submit a patch. 
+
+
+install-man:
+	mkdir -p $(mandir)/man1
+	install -c docs/udp-filter.1 $(mandir)/man1
+
+install-data-am: install-man
+
+uninstall: uninstall-am
+	rm -rf $(docdir) $(mandir)/man1/udp-filter.1*

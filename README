@@ -4,8 +4,8 @@ Wikimedia Foundation (c) 2012 // Diederik van Liere
 This code has been released under the GPL2. 
 
 =Dependencies=
-libgeoip-dev is a dependency that needs to be installed if you are going to
-compile manually.
+libgeoip-dev and libcidr1-dev are dependencies that needs to be installed
+if you are going to compile manually.
 
 =Installation=
 
