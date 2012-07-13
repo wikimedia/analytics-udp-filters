@@ -26,6 +26,7 @@ You can create a package yourself using the following steps:
 # make changes (if necessary) to copyright-sample and copy it to debian/copyright
 #dpkg-depcheck -d ./configure (#output of dpkg-depcheck (libraries) must be added to debian/control, the following three packages need to be added to the control file: 
 ## libgeoip-dev
+## libcidr-dev
 ## mime-support
 ## mawk
 ## autotools-dev
