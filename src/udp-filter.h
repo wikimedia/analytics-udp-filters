@@ -17,7 +17,7 @@
  */
 
 #include <regex.h>
-
+#include <libcidr.h>
 
 typedef enum ScreenType{
 	NO_FILTER          = 0,    // no filtering, write all hits to a file
@@ -89,7 +89,8 @@ typedef struct{
 	} http_status;
 	
 	int searchtype;
-	Ip ip;
+
+	CIDR *cidr_block;
 } Filter;
 
 
