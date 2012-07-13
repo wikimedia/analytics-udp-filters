@@ -19,6 +19,7 @@
 
 #include <stdlib.h>
 #include <check.h>
+#include <libcidr.h>
 #include "../src/udp-filter.h"
 #include "../src/countries.h"
 
@@ -70,11 +71,30 @@ START_TEST (test_regex_matching){
 END_TEST
 
 START_TEST (ip_address_filtering){
-	char *ip_address = "127.0.0.1";
-	int initialization = 0;
-	long ip_value =  convert_ip_to_long(ip_address, initialization);
-	fail_unless(ip_value == 2130706433);
+	char *ip_address;
+	Filter filters[2];
+	filters[0].cidr_block = cidr_from_str("71.190.22.0/24");
+	filters[1].cidr_block = cidr_from_str("2607:f0d0:1002:51::/64");
 
+	// match
+	ip_address = "71.190.22.42";
+	int result = match_ip_address(ip_address, filters, 1);
+	fail_unless(result);
+
+	// no match
+	ip_address = "90.190.22.42";
+	result = match_ip_address(ip_address, filters, 1);
+	fail_unless(result == 0);
+
+	// match IPv6
+	ip_address = "2607:f0d0:1002:51::4";
+	result = match_ip_address(ip_address, filters, 1);
+	fail_unless(result);
+
+	// no match IPv6
+	ip_address = "3607:f0d0:1002:51::4";
+	result = match_ip_address(ip_address, filters, 1);
+	fail_unless(result == 0);
 }
 END_TEST
 

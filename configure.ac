@@ -32,6 +32,7 @@ AC_CHECK_HEADERS([ctype.h])
 AC_CHECK_HEADERS([getopt.h])
 AC_CHECK_HEADERS([sys/types.h])
 AC_CHECK_HEADERS([regex.h])
+AC_CHECK_HEADERS([libcidr.h])
 AC_CHECK_HEADERS([GeoIP.h])
 AC_CHECK_HEADERS([GeoIPCity.h])
 

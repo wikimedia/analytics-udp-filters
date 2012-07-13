@@ -9,6 +9,6 @@ else
 endif
 
 AM_CPPFLAGS = $(GEOIP_CFLAGS)
-udp_filter_LDADD = $(GEOIP_LIBS) $(DEPS_LIBS) -lGeoIP
+udp_filter_LDADD = $(GEOIP_LIBS) $(DEPS_LIBS) -lGeoIP -lcidr
 
 #If you know a way how to automatically detect a library, then please contact me or submit a patch. 

@@ -42,6 +42,9 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <netdb.h>
+#include <errno.h>
+
+#include <libcidr.h>
 
 #include <GeoIP.h>
 #include <GeoIPCity.h>
@@ -202,72 +205,10 @@ void init_countries(char *countries[], char *country_input, int num_countries, c
 	free(input);
 }
 
-long convert_ip_to_long(char *ip_address, int initialization){
-	/*
-	 * Given an IP (4 or 6) address return the long value.
-	 */
-	long ip_long = -1;
 
-	struct addrinfo *addr;
-	struct addrinfo hints;
-	memset(&hints, 0, sizeof(hints));
-	hints.ai_flags=AI_NUMERICHOST;
-	hints.ai_family=AF_UNSPEC;
-	hints.ai_socktype=0;
-	hints.ai_protocol=0;
-
-	int result = getaddrinfo(ip_address, NULL, &hints, &addr);
-	if (result==0){
-		switch (addr->ai_family) {
-		case AF_INET:{
-			struct sockaddr_in *ipv4 = (struct sockaddr_in *)addr->ai_addr;
-			ip_long = ntohl(ipv4->sin_addr.s_addr);
-			break;
-		}
-		case AF_INET6:{
-			/* we cannot convert an ip6 address to a long, an ip6 address is stored
-			 *  as an array of sixteen 8-bit elements, that together make up a
-			 *  single 128-bit IPv6 address. (ipv6->sin6_addr.__u6_addr;)
-			 *  Implementation is not finished.
-			 *  TODO: Add byte-by-byte comparison
-			 */
-			char ipstr[INET6_ADDRSTRLEN];
-			void *addr_tmp;
-			struct sockaddr_in6 *ipv6 = (struct sockaddr_in6 *)addr->ai_addr;
-			addr_tmp = &(ipv6->sin6_addr);
-			inet_ntop(addr->ai_family,addr_tmp, ipstr, sizeof ipstr);
-			//fprintf(stderr, "IP6 address filtering is not yet implemented. Address:%s\n", ipstr);
-			break;
-		}
-		default:
-			break;
-		}
-
-		if (verbose_flag){
-			fprintf(stderr,"ip-address: %s\t ip-address long value:%ld\n", ip_address, ip_long);
-		}
-		freeaddrinfo(addr);
-		return ip_long;
-	} else{
-		if (initialization==1){
-			const char *error = gai_strerror(result);
-			fprintf(stderr, "Could not convert ip address: %s. Exact cause: %s\n", ip_address, error);
-			/* we are encountering the error while initializing the filter, this
-			 *  is most likely due to faulty user input.
-			 */
-			exit(EXIT_FAILURE);
-		} else{
-			// we are encountering the error while parsing a logline, just
-			// ignore it and go to the next line
-			freeaddrinfo(addr);
-			return ip_long;
-		}
-	}
-}
 
 void init_ip_addresses(Filter *filters, char *ipaddress_input, const char delimiter){
 	int i=0;
-	int initialization=1;
 
 	char *input = strdup(ipaddress_input);
 	char *startToken = input;
@@ -278,18 +219,19 @@ void init_ip_addresses(Filter *filters, char *ipaddress_input, const char delimi
 		if (endToken) {
 			*endToken = '\0';
 		}
-		char *hyphenPos = strchr(startToken, us_delimiter);
-		if (hyphenPos) {
-			// we are dealing with ip-ranges.
-			ipmatch = RANGE;
-			*hyphenPos = '\0';
-			filters[i].ip.lbound = convert_ip_to_long(startToken, initialization);
-			filters[i].ip.ubound = convert_ip_to_long(hyphenPos + 1, initialization);
-		} else {
-			// we are not dealing with ip-ranges but just with individual ip adress(es).
-			filters[i].ip.address_long = convert_ip_to_long(startToken, initialization);
+
+		// convert this IP address or CIDR range into a libcidr CIDR object.
+		filters[i].cidr_block = cidr_from_str(startToken);
+
+		if (filters[i].cidr_block == NULL) {
+            perror("Could not initialize cidr filter");
+			exit(EXIT_FAILURE);
 		}
-		if (!endToken){
+
+		// if we didnt' find an endToken delimeter, then
+		// this is the end of the -i filter input.
+		// break out of loop now.
+		if (!endToken) {
 			break;
 		}
 		i++;
@@ -546,39 +488,53 @@ char *extract_status(char *http_status_field) {
 	}
 }
 
-int match_ip_address(char *ip_address,Filter *filters, int num_filters){
-	int i=0;
-	long ip_address_long = convert_ip_to_long(ip_address, 0);
-	if (ip_address_long==-1){
-		// this happens when there was an error converting the ip_address to a long.
-		// treat as a non-match.
-		return 0;
-	}
-	switch (ipmatch) {
-	case SIMPLE:
-		for(i=0;i<num_filters;i++){
-			if (ip_address_long == filters[i].ip.address_long){
-				return 1;
-			}
-		}
-		return 0;
-		break;
 
-	case RANGE:
-		for(i=0;i<num_filters;i++){
-			if (verbose_flag == 1){
-				fprintf(stderr, "ip address long:%ld\tlower-bound:%ld\tupper-bound:%ld\n", ip_address_long, filters[i].ip.lbound,filters[i].ip.ubound);
-			}
-			if (ip_address_long >= filters[i].ip.lbound) {
-				if(ip_address_long <= filters[i].ip.ubound){
-					return 1;
-				}
-			}
+/**
+ * Returns true if ip_address belongs to an IP address range in filters.
+ * 
+ * char   *ip_address  - IP address string, either IPv4 or IPv6.
+ * Filter *filters     - Array of filters on which to match.
+ * int     num_filters - number of filters in filters array.
+ * returns int 1 if ip_address is at least one of the provided IP filters, 0 if not.
+ */
+int match_ip_address(char *ip_address, Filter *filters, int num_filters){
+	int i;
+
+	// convert the ip_address to a libcidr CIDR object
+	CIDR *cidr_ip = cidr_from_str(ip_address);
+
+	// start with matched == false.
+	int matched = 0;
+
+	// Loop through each filter.  
+	// If the filter has a cidr_block,
+	// then check to see if ip_address
+	// is in that block.
+	for (i=0; i < num_filters; i++) {
+		if (filters[i].cidr_block == NULL) {
+			continue;
 		}
-		return 0;
-		break;
+
+		// result will be 0 if the cidr_ip is in the cidr_block, -1 if not.
+		int result = cidr_contains(filters[i].cidr_block, cidr_ip);
+
+		if (verbose_flag == 1) {
+			fprintf(stderr, "Filtering IP address %s in block %s: %s\n", cidr_to_str(cidr_ip, CIDR_NOFLAGS), cidr_to_str(filters[i].cidr_block, CIDR_NOFLAGS), result == 0 ? "yes" : "no");
+		}
+
+		// If result was 0, then this filter's cidr_block
+		// contains the ip_address.  Set matched to true
+		// and break out of the filter search loop.
+		if (result == 0) {
+			matched = 1;
+			break;
+		}
 	}
-	return 0;
+
+	// free up the libcidr ip address from the 
+	// input line and return matched.
+	cidr_free(cidr_ip);
+	return matched;
 }
 
 int match_path(char *url, Filter *filters, int num_path_filters){
@@ -1145,6 +1101,9 @@ void parse(char *country_input, char *path_input, char *domain_input, char *ipad
 	}
 
 
+	// Now that we have initilaized all the filters,
+	// do the actual filtering and conversion of the 
+	// incoming data.
 	while (!feof(stdin)) {
 		int found =0;
 		area = NULL;
