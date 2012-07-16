@@ -1279,6 +1279,7 @@ int main(int argc, char **argv){
 			{"path", required_argument, NULL, 'p'},
 			{"regex", no_argument, NULL, 'r'},
 			{"verbose", no_argument, NULL, 'v'},
+			{"version", no_argument, NULL, 'V'},
 			{0, 0, 0, 0}
 	};
 

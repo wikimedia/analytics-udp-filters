@@ -36,7 +36,7 @@ AC_CHECK_HEADERS([libcidr.h])
 AC_CHECK_HEADERS([GeoIP.h])
 AC_CHECK_HEADERS([GeoIPCity.h])
 
-
+AC_PATH_PROG(HELP2MAN, help2man, false // No help2man //)
 
 ##########################################################################
 # debug compilation support

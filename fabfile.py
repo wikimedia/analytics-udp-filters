@@ -96,7 +96,7 @@ def main():
 	
 	local('git pull')
 	write_control_file(version)
-	local('help2man --section=1 --no-info --include=help2man.include --output=docs/udp-filter.1 --version-string=V ./udp-filter')
+	local('help2man --section=1 --no-info --include=docs/help2man.include --output=docs/udp-filter.1 ./udp-filter')
 	#local('rm ChangeLog')	
 	#local('git2cl >> ChangeLog')
 	#local('git log --pretty=%s >> ChangeLog')
