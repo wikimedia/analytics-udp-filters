@@ -70,9 +70,10 @@ const int num_predefined_filters = (HTTP_STATUS_FILTER - NO_FILTER) +1;
 int verbose_flag = 0;       // this flag indicates whether we should output detailed debug messages, default is off.
 
 // Default paths to GeoIP databases.
-char *db_country_path = "/usr/share/GeoIP/GeoIP.dat";
-char *db_city_path    = "/usr/share/GeoIP/GeoIPCity.dat";
-char *db_region_path  = "/usr/share/GeoIP/GeoIPRegion.dat";
+const char *maxmind_dir    = "/usr/share/GeoIP";
+const char *db_country_path = "/usr/share/GeoIP/GeoIP.dat";
+const char *db_city_path    = "/usr/share/GeoIP/GeoIPCity.dat";
+const char *db_region_path  = "/usr/share/GeoIP/GeoIPRegion.dat";
 
 SearchType search = STRING;
 RecodeType recode = NO;
@@ -1210,6 +1211,11 @@ void parse(char *country_input, char *path_input, char *domain_input, char *ipad
 void version() {
 	char *version = VERSION_STRING(VERSION_NUMBER);
 	printf("udp-filter %s\n", version);
+	printf("\n");
+	printf("Wikimedia's generic webserver access log filtering system.\n");
+	printf("This new filter system replaces the old collection of udp2log filters written in C.\n");
+	printf("It is customizable and can be configured using the command line.\n");
+	printf("\n");
 	printf("Copyright (C) 2012 Wikimedia Foundation, Inc.\n");
 	printf("This is free software; see the source copying conditions. There is NO\n");
 	printf("warrant; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.\n");
@@ -1218,33 +1224,51 @@ void version() {
 }
 
 void usage() {
-	printf("Wikimedia's generic UDP filtering system.\n");
-	printf("This new filter system replaces the old collection of filters written in C. It is highly customizable and can be fully configured using the command line.\n");
+	version();
+
+	printf("Usage: udp-filter [OPTION] ...\n");
+	printf("  One of --path, --ip or --domain are mandatory.  You can use all three, but you must give at least one of them.\n");
 	printf("\n");
-	printf("\nUsage: udp-filter [OPTION] ...\n\n");
 	printf("Options:\n");
-	printf("  Either --path or --domain are mandatory (you can use them both, the other command line parameters are optional.\n");
-	printf("  -p or --path:               the string or multiple strings separated by a comma that indicate what you want to match.\n");
-	printf("  -d or --domain:             the part of the domain name that you want to match. For example, 'en.m.' would match all English mobile Wikimedia projects.\n");
+	printf("  -p paths, --path=paths                 Path portions of the request URI to match.  Comma separated\n");
 	printf("\n");
-	printf("  -g or --geocode:            flag to indicate geocode the log, by default turned off.\n");
-	printf("  -b or --bird:               parameter that is mandatory when specifying -g or --geocode. Valid choices are <country>, <region>, <city>, <latlon> and <everything>.\n");
-	printf("  -a or --anonymize:          flag to indicate anonymize the log, by default turned off.\n");
-	printf("  -i or --ip:                 flag to indicate ip-filter the log, by default turned off. You can supply comma separated ip addresses, or comma-separated ip-ranges.\n");
+	printf("  -d domains, --domain=domain            Parts of domain names to match.  Comma separated.\n");
 	printf("\n");
-	printf("  -n or --min-field-count:    specify the number of fields that a log line contains. Default is 14.\n");
-	printf("  -m or --maxmind:            specify alternative path to MaxMind database.\n");
-	printf("    Current path to region database: %s\n", db_region_path);
-	printf("    Current path to city database: %s\n", db_city_path);
+	printf("  -i addresses, --ip=addresses           IP address(es) to match.  Comma seperated.  Accepts IPv4\n");
+	printf("                                         and IPv6 addresses and CIDR ranges.\n");
 	printf("\n");
-	printf("  -c or --country-list:       limit the log to particular countries, this should be a comma separated list of country codes. Valid country codes are the ISO 3166 country codes (see http://www.maxmind.com/app/iso3166). \n");
-	printf("  -s or --http-status:        match only lines with these HTTP response status code(s).\n");
-	printf("  -r or --regex:              the parameters -p, -u and -s are interpreted as regular expressions. Regular expression searching is probably slower so substring matching is recommended.\n");
-	printf("  -f or --force:              do not match on either domain, path, or ip address, basically turn filtering off. Can be useful when filtering for specific country.");
+	printf("  -c countries, --country-list=countries Filter for countries.  This should be a comma separated\n");
+	printf("                                         list of country codes. Valid country codes are the\n");
+	printf("                                         ISO 3166 country codes (see http://www.maxmind.com/app/iso3166).\n");
 	printf("\n");
-	printf("  -v or --verbose:            output detailed debug information to stderr, not recommended in production.\n");
-	printf("  -h or --help:               show this menu with all command line options.\n");
-	printf("  -V or --version             show version info.\n");
+	printf("  -s status, --http-status=status        Filter for HTTP response status code(s).\n");
+	printf("\n");
+	printf("  -r pattern, --regex=pattern            The parameters -p, -u and -s are interpreted as regular\n");
+	printf("                                         expressions. Regular expression searching is probably \n");
+	printf("                                         slower so substring matching is recommended.\n");
+	printf("\n");
+	printf("  -g, --geocode                          Turns on geocoding of IP addresses.\n");
+	printf("                                         Must also specify --bird.\n");
+	printf("\n");
+	printf("  -b bird, --bird=bird                   Mandatory when specifying --geocode.  Valid choices are\n");
+	printf("                                         <country>, <region>, <city>, <latlon> and <everything>.\n");
+	printf("\n");
+	printf("  -a, --anonymize                        Turns on IP addresses anonymization.\n");
+	printf("\n");
+	printf("  -n count, --min-field-count=count      Minimum number of fields that a log line contains.\n");
+	printf("                                         Default is 14.  If a line has fewer than this number of\n");
+	printf("                                         fields,the line will be discarded.\n");
+	printf("\n");
+	printf("  -m path, --maxmind=path                Alternative path to MaxMind database.  Default %s.\n", maxmind_dir);
+	printf("\n");
+	printf("  -f, --force:                           Do not match on either domain, path, or ip addres.\n");
+	printf("                                         Essentially turns filtering off. Can be useful when filtering\n");
+	printf("                                         for specific country.\n");
+	printf("\n");
+	printf("  -v, --verbose                          Output detailed debug information to stderr, not recommended\n");
+	printf("                                         in production.\n");
+	printf("  -h, --help                             Show this help message.\n");
+	printf("  -V, --version                          Show version info.\n\n");
 }
 
 int main(int argc, char **argv){
