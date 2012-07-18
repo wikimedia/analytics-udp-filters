@@ -937,28 +937,28 @@ void parse(char *country_input, char *path_input, char *domain_input, char *ipad
 	for(n=0; n<num_predefined_filters; n++){
 		switch (n) {
 
-		case 1: // DOMAIN_FILTER
+		case DOMAIN_FILTER:
 			if(params[n] ==1){
 				num_domain_filters = determine_num_obs(domain_input,comma_delimiter);
 				required_hits+=1;
 			}
 			break;
 
-		case 2: // PATH_FILTER
+		case PATH_FILTER:
 			if(params[n] ==1){
 				num_path_filters = determine_num_obs(path_input,comma_delimiter);
 				required_hits+=1;
 			}
 			break;
 
-		case 3: //IP_FILTER
+		case IP_FILTER:
 			if(params[n] ==1){
 				num_ipaddress_filters = determine_num_obs(ipaddress_input, comma_delimiter);
 				required_hits+=1;
 			}
 			break;
 
-		case 4: // GEO_FILTER
+		case GEO_FILTER:
 			if(params[n] ==1){
 				if(country_input != NULL && strlen(country_input) >1){
 					num_countries_filters = determine_num_obs(country_input, comma_delimiter);
@@ -966,7 +966,7 @@ void parse(char *country_input, char *path_input, char *domain_input, char *ipad
 				}
 			}
 			break;
-		case 5: // HTTP_STATUS_FILTER
+		case HTTP_STATUS_FILTER:
 			if(params[n] ==1){
 				if(http_status_input != NULL && strlen(http_status_input) >1){
 					num_http_status_filters = determine_num_obs(http_status_input, comma_delimiter);
@@ -989,7 +989,7 @@ void parse(char *country_input, char *path_input, char *domain_input, char *ipad
 	for(n=0; n<num_predefined_filters; n++){
 		switch (n) {
 
-		case 1: // DOMAIN_FILTER
+		case DOMAIN_FILTER:
 			if(params[n] ==1){
 				init_domains(filters, domain_input,comma_delimiter);
 			} else {
@@ -997,7 +997,7 @@ void parse(char *country_input, char *path_input, char *domain_input, char *ipad
 			}
 			break;
 
-		case 2: // PATH_FILTER
+		case PATH_FILTER:
 			if(params[n] ==1){
 				init_paths(filters, path_input, comma_delimiter);
 			} else {
@@ -1005,7 +1005,7 @@ void parse(char *country_input, char *path_input, char *domain_input, char *ipad
 			}
 			break;
 
-		case 3: //IP_FILTER
+		case IP_FILTER:
 			if(params[n] ==1){
 				init_ip_addresses(filters, ipaddress_input, comma_delimiter);
 			} else {
@@ -1013,7 +1013,7 @@ void parse(char *country_input, char *path_input, char *domain_input, char *ipad
 			}
 			break;
 
-		case 4: // GEO_FILTER
+		case GEO_FILTER:
 			if(params[n] ==1 || (recode & GEO)) {
 				init_countries(countries, country_input, num_countries_filters, comma_delimiter);
 				bird_int = init_bird_level(bird);
@@ -1077,7 +1077,7 @@ void parse(char *country_input, char *path_input, char *domain_input, char *ipad
 				country_input =NULL;
 			}
 			break;
-		case 5: // HTTP_STATUS_FILTER
+		case HTTP_STATUS_FILTER:
 			if(params[n] ==1){
 				init_http_status(filters, http_status_input, comma_delimiter);
 			} else {
