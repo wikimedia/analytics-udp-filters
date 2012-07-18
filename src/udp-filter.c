@@ -936,11 +936,6 @@ void parse(char *country_input, char *path_input, char *domain_input, char *ipad
 	// DETERMINE NUMBER OF FILTERS
 	for(n=0; n<num_predefined_filters; n++){
 		switch (n) {
-		case 0: // NO_FILTER
-			if(params[n] ==1){
-				required_hits+=1;
-			}
-			break;
 
 		case 1: // DOMAIN_FILTER
 			if(params[n] ==1){
@@ -993,10 +988,6 @@ void parse(char *country_input, char *path_input, char *domain_input, char *ipad
 	// FILTER INITIALIZATION
 	for(n=0; n<num_predefined_filters; n++){
 		switch (n) {
-		case 0: // NO_FILTER
-			if(params[n] ==1){
-			}
-			break;
 
 		case 1: // DOMAIN_FILTER
 			if(params[n] ==1){
@@ -1140,9 +1131,6 @@ void parse(char *country_input, char *path_input, char *domain_input, char *ipad
 		url         = fields[8];
 
 		if (url != NULL) {
-			if (params[NO_FILTER] == 1){
-				found =1;
-			}
 
 			if (params[DOMAIN_FILTER] == 1){
 				found += match_domain(url, filters, num_domain_filters);
@@ -1169,7 +1157,11 @@ void parse(char *country_input, char *path_input, char *domain_input, char *ipad
 			}
 		}
 
-
+		// required_hits will equal the number of filters
+		// given.  These include ip, domain, path, status,
+		// and country filtering.  If no filters where given,
+		// then found will be 0 AND require_hits will be 0, 
+		// allowing the line to pass through.
 		if (found >= required_hits) {
 			// if we need to replace the IP addr
 			// because recode is GEO or ANONYMIZE or both
@@ -1280,7 +1272,6 @@ int main(int argc, char **argv){
 	char *db_path = NULL;
 	char *bird = NULL;
 	int geo_param_supplied = -1;
-	int required_args = 0;
 	
 	// Expected minimum number of fields in a line.
 	// There  can be no fewer than this, but no more than
@@ -1293,7 +1284,6 @@ int main(int argc, char **argv){
 			{"bird", required_argument, NULL, 'b'},
 			{"country_list", required_argument, NULL, 'c'},
 			{"domain", required_argument, NULL, 'd'},
-			{"force", no_argument, NULL, 'f'},
 			{"geocode", no_argument, NULL, 'g'},
 			{"help", no_argument, NULL, 'h'},
 			{"ip", required_argument, NULL, 'i'},
@@ -1311,7 +1301,7 @@ int main(int argc, char **argv){
 
 	int c;
 
-	while((c = getopt_long(argc, argv, "ab:c:d:m:n:s:fghi:rp:vV", long_options, NULL)) != -1) {
+	while((c = getopt_long(argc, argv, "ab:c:d:m:n:s:ghi:rp:vV", long_options, NULL)) != -1) {
 		// c,d,m,i,p have mandatory arguments
 		switch(c)
 		{
@@ -1329,7 +1319,6 @@ int main(int argc, char **argv){
 			/* Optional list of countries to restrict logging */
 			country_input = optarg;
 			params[GEO_FILTER] = 1;
-			required_args++;
 			break;
 
 		case 'd':
@@ -1338,7 +1327,6 @@ int main(int argc, char **argv){
 			 */
 			params[DOMAIN_FILTER] = 1;
 			domain_input = optarg;
-			required_args++;
 			search=STRING;
 			break;
 
@@ -1349,12 +1337,6 @@ int main(int argc, char **argv){
 
 		case 'n':
 			minimum_field_count = atoi(optarg);
-			break;
-
-		case 'f':
-			/* Do not perform any matching */
-			params[NO_FILTER] = 1;
-			required_args++;
 			break;
 
 		case 'g':
@@ -1374,14 +1356,12 @@ int main(int argc, char **argv){
 			/* Enable filtering by ip-address or ip-range */
 			params[IP_FILTER] =1;
 			ipaddress_input = optarg;
-			required_args++;
 			break;
 
 		case 's':
 			/* Enable filtering by HTTP response status code */
 			params[HTTP_STATUS_FILTER] = 1;
 			http_status_input = optarg;
-			required_args++;
 			break;
 		case 'r':
 			/* indicate whether we should treat the search string as a regular
@@ -1394,7 +1374,6 @@ int main(int argc, char **argv){
 			/* -p is set. Store the url that needs to be matched. */
 			params[PATH_FILTER]= 1;
 			path_input = optarg;
-			required_args++;
 			search=STRING;
 			break;
 
@@ -1428,10 +1407,6 @@ int main(int argc, char **argv){
 		exit(EXIT_FAILURE);
 	}
 	
-	if (required_args>=1){
-		parse(country_input, path_input, domain_input, ipaddress_input, http_status_input, bird, db_path, minimum_field_count);
-	} else{
-		usage();
-	}
+	parse(country_input, path_input, domain_input, ipaddress_input, http_status_input, bird, db_path, minimum_field_count);
 	return EXIT_SUCCESS;
 }
