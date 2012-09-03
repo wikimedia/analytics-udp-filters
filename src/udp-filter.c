@@ -61,6 +61,10 @@
  */
 
 char anonymous_ip[] = "0.0.0.0";
+
+anon_ipv4_t *anon_ipv4 = NULL;   // The libanon anon_ipv4 object for ipv4 anonymization.
+anon_ipv6_t *anon_ipv6 = NULL;   // The libanon anon_ipv6 object for ipv6 anonymization.
+
 char unknown_geography[] = "XX";
 const char comma_delimiter =',';
 const char ws_delimiter[] = " ";
@@ -573,7 +577,7 @@ int match_path(char *url, Filter *filters, int num_path_filters){
 							regerror(result, filters[i].path.regex, errbuf, MAX_ERROR_MSG);
 							fprintf(stderr, "Encountered error while regex matching: %s\n", errbuf);
 						} else {
-							fprintf(stderr, "%s<-->%p\t%d\n", path, &filters[i].path.regex, path_found);
+							fprintf(stderr, "%s<-->%p\t%d\n", path, (void *)&filters[i].path.regex, path_found);
 						}
 					}
 					if (verbose_flag){
@@ -582,7 +586,7 @@ int match_path(char *url, Filter *filters, int num_path_filters){
 							regerror(result, filters[i].path.regex, errbuf, MAX_ERROR_MSG);
 							fprintf(stderr, "Encountered error while regex matching: %s\n", errbuf);
 						} else {
-							fprintf(stderr, "%s<-->%p\t%d\n", path, &filters[i].path.regex, path_found);
+							fprintf(stderr, "%s<-->%p\t%d\n", path, (void *)&filters[i].path.regex, path_found);
 						}
 					}
 				}
@@ -832,6 +836,65 @@ int geo_check(const char *country_code, char *countries[], int countries_count) 
 }
 
 
+/*
+ * Uses getaddrinfo() to determine if ip_address
+ * is IPv4 or IPv6.
+ * Returns -1 if getaddrinfo() fails.
+ * Else returns ai_family, or AF_UNSPEC if
+ * ai_family is not AF_INET or AF_INET6
+ *
+ * raw_address should point to a non null buffer
+ * big enough to hold a raw IPv6 address.
+ * The raw address will be copied into raw_address
+ * from the result struct returned by getaddrinfo.
+ * raw_address will then be a pointer to either
+ * a struct in_addr or a struct in6_addr.
+ */
+int determine_ai_family(char *ip, void *raw_address) {
+	int ai_family;
+
+	struct addrinfo hint, *res = NULL;
+	memset(&hint, '\0', sizeof hint);
+
+	// Flags to tell getaddrinfo() that
+	// we don't yet know the IP version,
+	// and that we don't want to do any
+	// DNS lookups.
+	hint.ai_family          = PF_UNSPEC;
+	hint.ai_flags           = AI_NUMERICHOST;
+
+	// Call getaddrinfo to determine IPv4 vs IPv6.
+	// If getaddrinfo returns non-zero, then this
+	// is an error.  Return -1 and set raw_address to NULL;
+	if (getaddrinfo(ip, NULL, &hint, &res)) {
+		raw_address = NULL;
+		return -1;
+	}
+
+	if (res->ai_family == AF_INET) {
+		ai_family   = res->ai_family;
+		// copy the IPv4 address into raw_address
+		memcpy(raw_address, &((struct sockaddr_in *)res->ai_addr)->sin_addr, sizeof(struct in_addr));
+	}
+	else if (res->ai_family == AF_INET6) {
+		ai_family = res->ai_family;
+		// copy the IPv6 address into raw_address;
+		memcpy(raw_address, &((struct sockaddr_in6 *)res->ai_addr)->sin6_addr, sizeof(struct in6_addr));
+	}
+	// else we can't figure out the address type.
+	// return AF_UNSPEC and set raw_address to NULL;
+	else {
+		ai_family   = AF_UNSPEC;
+		raw_address = NULL;
+	}
+
+	freeaddrinfo(res);
+	return ai_family;
+}
+
+
+
+
 void replace_ip_addr(char *fields[], char* area, int should_anonymize_ip) {
 	/*
 	 * The purpose of this function is to replace the original ip address from
@@ -842,11 +905,12 @@ void replace_ip_addr(char *fields[], char* area, int should_anonymize_ip) {
 	 * area is a geocoded string to be appended to the IP address.  If it
 	 * is null, nothing will be appended.
 	 * If should_anonymize_ip is true, the IP address will be replaced with anonoymous_ip.
+	 * 
 	 * fields is by reference, so fields[4] will be replaced with the resulting string.
 	 */
 	
 	if (should_anonymize_ip) {
-		fields[4] = anonymous_ip;
+		fields[4] = anonymize_ip_address(fields[4]);
 	}
 	
 	
@@ -858,6 +922,150 @@ void replace_ip_addr(char *fields[], char* area, int should_anonymize_ip) {
 		// set fields[4] to the new string.
 		fields[4] = new_field;
 	}
+}
+
+
+
+
+/**
+ * Initializes global anon_ipv4 and anon_ipv6 objects.
+ * If anon_key_salt is NULL, a random key salt will
+ * be used.
+ */
+void init_anon_ip(uint8_t *anon_key_salt) {
+	anon_key_t *anon_key = anon_key_new();
+
+	// if anon_key_salt is set, then
+	// use it as the salt to IP address anonymization hashing.
+	if (anon_key_salt) {
+		anon_key_set_key(anon_key, anon_key_salt, strlen((char *)anon_key_salt));
+	}
+	// else choose a random key.
+	else {
+		anon_key_set_random(anon_key);
+	}
+
+	// initialize the ipv4 and ipv6 objects
+	anon_ipv4 = anon_ipv4_new();
+	anon_ipv6 = anon_ipv6_new();
+
+	if (!anon_ipv4 || !anon_ipv6) {
+		fprintf(stderr, "Failed to initialize anonymization IP mapping.\n");
+		anon_key_delete(anon_key);
+		exit(EXIT_FAILURE);
+    }
+
+    anon_ipv4_set_key(anon_ipv4, anon_key);
+    anon_ipv6_set_key(anon_ipv6, anon_key);
+}
+
+
+/**
+ * Anonymizes an IPv4 or IPv6 string.
+ *
+ * If the globals anon_ipv4 or anon_ipv6 are not set
+ * then the global anonymous_ip string will be used
+ * to anonymize the IP.
+ *
+ * @param  string ip  string IP address.
+ * @return string anonymized IP address.
+ */
+char *anonymize_ip_address(char *ip) {
+	in_addr_t  raw4_address, raw4_anon_address;
+	in6_addr_t raw6_address, raw6_anon_address;
+	// AF_INET or AF_INET6
+	int   ai_family;
+	// pointer to the binary form of ip.
+	void *raw_address;
+	// string form of anonymized ip.
+	char *anonymized_ip;
+
+	// Big enough to hold 128 IPv6 addresses.
+	// This is just a byte array meant hold raw
+	// IPv4 or IPv6 addresses.  determine_ai_family
+	// will set it to the raw address returned by
+	// getaddrinfo().
+	// NOTE:  This is to avoid an extra call to
+	// inet_pton, since getaddrinfo() converts
+	// a string IP address to its raw binary form.
+	raw_address = malloc(sizeof(in6_addr_t));
+	ai_family   = determine_ai_family(ip, raw_address); // AF_INET or AF_INET6
+
+	// if raw_address is NULL, then getaddrinfo() either
+	// couldn't get ai_family or it failed converting
+	// ip into a binary raw IP address.  Return the
+	// default anonymous_ip string.
+	if (raw_address == NULL) {
+		fprintf(stderr, "determine_ai_family did not return raw_address for %s.", ip);
+		return anonymous_ip;
+	}
+
+	switch (ai_family) {
+		// NOTE.  anon_ipv4_map_pref() and anon_ipv6_map_pref
+		// take a ip*_addr_t struct as the raw address second
+		// argument, NOT a pointer to one.  You'd think this
+		// distinction wouldn't be important, but it is.
+		// I haven't figured out why, but simply dereferencing
+		// and casting the void *raw_address to the proper type
+		// doesn't work.  You *can* get this to compile (if you
+		// use a char * instead of void *), but unless you
+		// memcpy into a ip*_addr_t struct, the anon_ function
+		// will return unreliable results.  I was getting the same
+		// anonymized IPs for different but similiar IPs.
+
+		// anonymize IPv4 address
+		case AF_INET:
+			if (anon_ipv4 == NULL) {
+				anonymized_ip = anonymous_ip;
+			}
+			else {
+				// Anonymize the IPv4 address, saved in raw4_anon_address.
+				memcpy(&raw4_address, raw_address, sizeof(in_addr_t));
+				anon_ipv4_map_pref(anon_ipv4, raw4_address, &raw4_anon_address);
+				// printf("anon_ipv4_map_pref %u -> %u\n", (unsigned int)(raw_address[0]), (unsigned int)raw4_anon_address);
+
+				// Convert the raw anonymized address back to a string
+				anonymized_ip = malloc(INET_ADDRSTRLEN);
+				// If failed, use anonymous_ip "0.0.0.0".  This should never happen.
+				if (!inet_ntop(AF_INET, &raw4_anon_address, anonymized_ip, INET_ADDRSTRLEN)) {
+					perror("anonymize_ip_address: inet_ntop could not convert raw anonymized IPv4 address to a string");
+					anonymized_ip = anonymous_ip;
+				}
+			}
+			break;
+
+		// anonymize IPv6 address
+		case AF_INET6:
+			if (anon_ipv6 == NULL) {
+				anonymized_ip = anonymous_ip;
+			}
+			else {
+				// Anonymize the IPv6 address, saved in raw6_anon_address.
+				memcpy(&raw6_address, raw_address, sizeof(in6_addr_t));
+				anon_ipv6_map_pref(anon_ipv6, raw6_address, &raw6_anon_address);
+				// Convert the raw anonymized address back to a string
+				anonymized_ip = malloc(INET6_ADDRSTRLEN);
+
+				// If failed, use anonymous_ip "0.0.0.0".  This should never happen.
+				if (!inet_ntop(AF_INET6, &raw6_anon_address, anonymized_ip, INET6_ADDRSTRLEN)) {
+					perror("anonymize_ip_address: inet_ntop could not convert raw anonymized IPv6 address to a string");
+					anonymized_ip = anonymous_ip;
+				}
+			}
+			break;
+
+		// Default use anonymous_ip "0.0.0.0"
+		// This will only happen if ai_family couldn't
+		// be determined.
+		default:
+			anonymized_ip = anonymous_ip;
+			break;
+	}
+	// don't need this anymore.
+	free(raw_address);
+
+	// printf("Anonymized %s -> %s\n", ip, anonymized_ip);
+	return anonymized_ip;
 }
 
 void free_memory(Filter *filters, char *path_input, char *domain_input, int num_filters, GeoIP* gi, char *countries[], int num_countries_filters) {
@@ -1122,13 +1330,15 @@ void parse(char *country_input, char *path_input, char *domain_input, char *ipad
 			 */
 			continue;
 		}
-		
+
+
 		// we found i fields in this line.
 		field_count_this_line = i;
 
 		ipaddr      = fields[4];
 		http_status = fields[5];
 		url         = fields[8];
+
 
 		if (url != NULL) {
 
@@ -1173,11 +1383,11 @@ void parse(char *country_input, char *path_input, char *domain_input, char *ipad
 				if (area == NULL && (recode & GEO)) {
 					area = geo_lookup(gi, ipaddr, bird_int);
 				}
-				
+
 				// replace the ip address in fields.
 				// if area is not null, it will be appended
 				// to the ip address.  If (recode & ANONYMIZE) is
-				// true, then the IP will be replaced with 0.0.0.0
+				// true, then the IP will be replaced.
 				replace_ip_addr(fields, area, (recode & ANONYMIZE));
 			}
 
@@ -1245,7 +1455,10 @@ void usage() {
 	printf("  -b bird, --bird=bird                   Mandatory when specifying --geocode.  Valid choices are\n");
 	printf("                                         <country>, <region>, <city>, <latlon> and <everything>.\n");
 	printf("\n");
-	printf("  -a, --anonymize                        Turns on IP addresses anonymization.\n");
+	printf("  -a, --anonymize[=salt-key]             Turns on IP addresses anonymization.  If salt-key is given, then\n");
+	printf("                                         libanon will be used to do prefix preserviing anonymization.\n");
+	printf("                                         salt-key may be 'random' a string at least 32 characters long.\n");
+	printf("                                         If 'random' is given, then a random salt-key will be chosen.\n");
 	printf("\n");
 	printf("  -n count, --min-field-count=count      Minimum number of fields that a log line contains.\n");
 	printf("                                         Default is 14.  If a line has fewer than this number of\n");
@@ -1280,7 +1493,7 @@ int main(int argc, char **argv){
 	int minimum_field_count = 14;
 
 	static struct option long_options[] = {
-			{"anonymize", no_argument, NULL, 'a'},
+			{"anonymize", optional_argument, NULL, 'a'},
 			{"bird", required_argument, NULL, 'b'},
 			{"country_list", required_argument, NULL, 'c'},
 			{"domain", required_argument, NULL, 'd'},
@@ -1301,15 +1514,34 @@ int main(int argc, char **argv){
 
 	int c;
 
-	while((c = getopt_long(argc, argv, "ab:c:d:m:n:s:ghi:rp:vV", long_options, NULL)) != -1) {
+	while((c = getopt_long(argc, argv, "a::b:c:d:m:n:s:ghi:rp:vV", long_options, NULL)) != -1) {
 		// c,d,m,i,p have mandatory arguments
 		switch(c)
 		{
 		case 'a':
 			/* Indicate whether we should anonymize the log, default is false */
 			recode = (recode | ANONYMIZE);
-			break;
 
+			// if optarg is NULL, then we will not be using
+			// libanon.  No need to initialize the anon ip objects
+			if (optarg != NULL) {
+				// if 'random', then use a random
+				// anon salt key by passing NULL to init_anon_ip().
+				if (strcmp(optarg, "random") == 0) {
+					init_anon_ip(NULL);
+				}
+				// Ok, we've been given a salt key.
+				// make sure it is long enough.
+				else if (strlen(optarg) < 32) {
+					fprintf(stderr, "salt-key argument to --anonymize '%s' must be at least 32 characters long.\n", optarg);
+					exit(EXIT_FAILURE);
+				}
+				// great, initialized the anon ip objects.
+				else {
+					init_anon_ip((uint8_t *)optarg);
+				}
+			}
+			break;
 		case 'b':
 			geo_param_supplied =0;
 			bird = optarg;

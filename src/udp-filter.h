@@ -17,7 +17,11 @@
  */
 
 #include <regex.h>
+#include <stdint.h>
 #include <libcidr.h>
+
+#include <libanon.h>
+
 
 typedef enum ScreenType{
 	NO_FILTER          = 0,    // no filtering, write all hits to a file
@@ -101,4 +105,6 @@ int match_domain(char *url, Filter *filters, int num_domain_filters);
 
 regex_t * init_regex(char *token);
 
-long convert_ip_to_long(char *ip_address, int initialization);
+char *anonymize_ip_address(char *ip);
+int   determine_ai_family(char *ip, void *raw_address);
+void  init_anon_ip(uint8_t *anon_key_salt);

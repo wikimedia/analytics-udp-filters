@@ -19,10 +19,24 @@ Outputs logs where the domain contains en.wikipedia and the url contains SOPA.
 Outputs logs where the domain contains en.wikipedia and the url contains
 either SOPA or PIPA.
 .P
-	udp-filter \-d en.wikipedia \-a
+	udp-filter \-d en.wikipedia \--anonymize
 
 Outputs logs if the domain contains en.wikipedia and replaces the ip address
 of the visitor with 0.0.0.0.
+.P
+	udp-filter \-d en.wikipedia \--anomymize=random
+
+Outputs logs if the domain contains en.wikipedia and replaces the ip address
+of the visitor with a libanon prefix preserved anonymized IP.  This uses a
+random salt key to hash the original IP address, so the anonymized IPs will
+be different on each invocation.
+.P
+	udp-filter \-d en.wikipedia \--anonymize=012345678901234567890123456789012
+
+Outputs logs if the domain contains en.wikipedia and replaces the ip address
+of the visitor with a libanon prefix preserved anonymized IP.  This specifies
+a salt key to hash the original IP address, so the anonymized IPs will be
+the same on each invocation
 .P
 	udp-filter \-d en.wikipedia \-g -b country
 
