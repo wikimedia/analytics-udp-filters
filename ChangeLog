@@ -2,7 +2,7 @@ udp-filter (0.2.6) stable; urgency=low
 
   * Using libanon for IP address anonymization.
 
- -- Andrew Otto (wmvm) <otto@wikimedia.org>  Tue, 4 Sep 2012 15:45:00 -0500
+ -- Andrew Otto (WMF) <otto@wikimedia.org>  Tue, 4 Sep 2012 15:45:00 -0500
 
 udp-filter (0.2.5) stable; urgency=low
 
