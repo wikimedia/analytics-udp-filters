@@ -2,6 +2,8 @@
 udp-filter
 
 [examples]
+Udp-filter reads from stdin and the output, by default, is written to stdout.
+
 	udp-filter \-d en.wikipedia
 
 Outputs logs if the domain contains en.wikipedia.
@@ -72,4 +74,4 @@ appropriate hits are being logged. This setting is not recommended in
 production.
 
 [bugs]
-No known bugs, but let me know if you find any.
+See the file KNOWN_ISSUES
