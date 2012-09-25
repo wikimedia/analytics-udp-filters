@@ -22,6 +22,9 @@
 /* Define to 1 if you have the <inttypes.h> header file. */
 #define HAVE_INTTYPES_H 1
 
+/* Define to 1 if you have the <libcidr.h> header file. */
+/* #undef HAVE_LIBCIDR_H */
+
 /* Define to 1 if you have the `geoip' library (-lgeoip). */
 #define HAVE_LIBGEOIP 1
 
@@ -87,7 +90,7 @@
 #define HAVE_UNISTD_H 1
 
 /* No-debug Mode */
-#define NDEBUG 
+#define NDEBUG /**/
 
 /* Name of package */
 #define PACKAGE "udp-filter"
@@ -104,6 +107,9 @@
 /* Define to the one symbol short name of this package. */
 #define PACKAGE_TARNAME "udp-filter"
 
+/* Define to the home page for this package. */
+#define PACKAGE_URL ""
+
 /* Define to the version of this package. */
 #define PACKAGE_VERSION "0.2.2"
 
@@ -119,9 +125,19 @@
 /* Define to rpl_malloc if the replacement function should be used. */
 /* #undef malloc */
 
-/* Define to equivalent of C99 restrict keyword, or to nothing if this is not
-   supported. Do not define if restrict is supported directly. */
+/* Define to the equivalent of the C99 'restrict' keyword, or to
+   nothing if this is not supported.  Do not define if restrict is
+   supported directly.  */
 #define restrict __restrict
+/* Work around a bug in Sun C++: it does not support _Restrict or
+   __restrict__, even though the corresponding Sun C compiler ends up with
+   "#define restrict _Restrict" or "#define restrict __restrict__" in the
+   previous line.  Perhaps some future version of Sun C++ will work with
+   restrict; if so, hopefully it defines __RESTRICT like Sun C does.  */
+#if defined __SUNPRO_CC && !defined __RESTRICT
+# define _Restrict
+# define __restrict__
+#endif
 
 /* Define to `unsigned int' if <sys/types.h> does not define. */
 /* #undef size_t */

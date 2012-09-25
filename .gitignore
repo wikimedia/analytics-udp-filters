@@ -1,4 +1,5 @@
 *.o
+config.log
 GeoIP.dat
 Debug/*
 udp_filter

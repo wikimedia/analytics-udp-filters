@@ -74,7 +74,7 @@ const int num_predefined_filters = (HTTP_STATUS_FILTER - NO_FILTER) +1;
 int verbose_flag = 0;       // this flag indicates whether we should output detailed debug messages, default is off.
 
 // Default paths to GeoIP databases.
-const char *maxmind_dir    = "/usr/share/GeoIP";
+const char *maxmind_dir     = "/usr/share/GeoIP";
 const char *db_country_path = "/usr/share/GeoIP/GeoIP.dat";
 const char *db_city_path    = "/usr/share/GeoIP/GeoIPCity.dat";
 const char *db_region_path  = "/usr/share/GeoIP/GeoIPRegion.dat";
@@ -1119,17 +1119,18 @@ void free_memory(Filter *filters, char *path_input, char *domain_input, int num_
 	}
 }
 
-void parse(char *country_input, char *path_input, char *domain_input, char *ipaddress_input, char *http_status_input, char *bird, char *db_path, int minimum_field_count) {
+void parse(char *country_input, char *path_input, char *domain_input, char *ipaddress_input, char *http_status_input, char *referer_input, char *bird, char *db_path, int minimum_field_count) {
 	// GENERIC VARIABLES
 	char *fields[maximum_field_count];	// the number of fields we expect in a single line
-	int num_filters =0;			// the total number of filters we detect from the command line
-	int num_domain_filters =0;  // the total number of domain filters
-	int num_path_filters =0 ;   // the total number of path filters
-	int num_ipaddress_filters=0;// the total number of ipaddress filter
-	int num_countries_filters=0;// the total number countries we want to restrict the filtering
-	int num_http_status_filters=0; // the total number of http status we want to restrict the filtering.  
-	int required_hits =0;
-	int bird_int = 0;
+	int num_filters = 0;				// the total number of filters we detect from the command line
+	int num_domain_filters = 0;  		// the total number of domain filters
+	int num_path_filters = 0;  		    // the total number of path filters
+	int num_ipaddress_filters = 0;		// the total number of ipaddress filter
+	int num_countries_filters = 0; 	    // the total number countries we want to restrict the filtering
+	int num_http_status_filters = 0; 	// the total number of http status we want to restrict the filtering.  
+	int num_referer_filters = 0;
+	int required_hits = 0;
+	int bird_int = 0;			
 	int i;
 	int j;
 	int n;
@@ -1140,40 +1141,49 @@ void parse(char *country_input, char *path_input, char *domain_input, char *ipad
 	char *ipaddr;
 	char *url;
 	char *http_status;
+	char *referer;
 
 	// DETERMINE NUMBER OF FILTERS
 	for(n=0; n<num_predefined_filters; n++){
 		switch (n) {
 
 		case DOMAIN_FILTER:
-			if(params[n] ==1){
+			if(params[n] == 1){
 				num_domain_filters = determine_num_obs(domain_input,comma_delimiter);
 				required_hits+=1;
 			}
 			break;
 
 		case PATH_FILTER:
-			if(params[n] ==1){
+			if(params[n] ==1 ){
 				num_path_filters = determine_num_obs(path_input,comma_delimiter);
 				required_hits+=1;
 			}
 			break;
 
 		case IP_FILTER:
-			if(params[n] ==1){
+			if(params[n] == 1){
 				num_ipaddress_filters = determine_num_obs(ipaddress_input, comma_delimiter);
 				required_hits+=1;
 			}
 			break;
 
 		case GEO_FILTER:
-			if(params[n] ==1){
+			if(params[n] == 1){
 				if(country_input != NULL && strlen(country_input) >1){
 					num_countries_filters = determine_num_obs(country_input, comma_delimiter);
 					required_hits+=1;
 				}
 			}
 			break;
+
+		case REFERER_FILTER:
+			if(params[n] == 1){
+				num_referer_filters = determine_num_obs(referer_input, comma_delimiter);
+				required_hits+=1;
+			}
+			break;
+
 		case HTTP_STATUS_FILTER:
 			if(params[n] ==1){
 				if(http_status_input != NULL && strlen(http_status_input) >1){
@@ -1185,7 +1195,7 @@ void parse(char *country_input, char *path_input, char *domain_input, char *ipad
 		}
 	}
 
-	num_filters = num_path_filters+num_domain_filters+num_ipaddress_filters+num_countries_filters+num_http_status_filters;
+	num_filters = num_path_filters+num_domain_filters+num_ipaddress_filters+num_countries_filters+num_http_status_filters+num_referer_filters;
 	Filter filters[num_filters];
 
 	// GEO_FILTER INITIALIZATION
@@ -1199,7 +1209,7 @@ void parse(char *country_input, char *path_input, char *domain_input, char *ipad
 
 		case DOMAIN_FILTER:
 			if(params[n] ==1){
-				init_domains(filters, domain_input,comma_delimiter);
+				init_domains(filters, domain_input, comma_delimiter);
 			} else {
 				domain_input=NULL;
 			}
@@ -1218,6 +1228,14 @@ void parse(char *country_input, char *path_input, char *domain_input, char *ipad
 				init_ip_addresses(filters, ipaddress_input, comma_delimiter);
 			} else {
 				ipaddress_input = NULL;
+			}
+			break;
+
+		case REFERER_FILTER:
+			if (params[n]==1){
+				init_domains(filters, referer_input, comma_delimiter);
+			} else {
+				referer_input = NULL;
 			}
 			break;
 
@@ -1338,6 +1356,7 @@ void parse(char *country_input, char *path_input, char *domain_input, char *ipad
 		ipaddr      = fields[4];
 		http_status = fields[5];
 		url         = fields[8];
+		referer     = fields[12];
 
 
 		if (url != NULL) {
@@ -1356,6 +1375,10 @@ void parse(char *country_input, char *path_input, char *domain_input, char *ipad
 
 			if (params[IP_FILTER] == 1){
 				found += match_ip_address(ipaddr, filters, num_ipaddress_filters);
+			}
+
+			if (params[REFERER_FILTER] == 1){
+				found += match_domain(referer, filters, num_referer_filters);
 			}
 
 			if (params[GEO_FILTER] == 1){
@@ -1423,6 +1446,7 @@ void version() {
 	printf("warrant; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.\n");
 	printf("\n");
 	printf("Written by Diederik van Liere (dvanliere@wikimedia.org).\n");
+	printf("           Andrew Otto (aotto@wikimedia.org).\n");
 }
 
 void usage() {
@@ -1435,6 +1459,8 @@ void usage() {
 	printf("  -p paths, --path=paths                 Path portions of the request URI to match.  Comma separated\n");
 	printf("\n");
 	printf("  -d domains, --domain=domain            Parts of domain names to match.  Comma separated.\n");
+	printf("\n");
+	printf("  -r referers, --referers=domain 		 Parts of the referer domain to match. Comma separated\n");
 	printf("\n");
 	printf("  -i addresses, --ip=addresses           IP address(es) to match.  Comma seperated.  Accepts IPv4\n");
 	printf("                                         and IPv6 addresses and CIDR ranges.\n");
@@ -1481,6 +1507,7 @@ int main(int argc, char **argv){
 	char *path_input = NULL;
 	char *domain_input = NULL;
 	char *ipaddress_input = NULL;
+	char *referer_input = NULL;
 	char *http_status_input = NULL;
 	char *db_path = NULL;
 	char *bird = NULL;
@@ -1505,6 +1532,7 @@ int main(int argc, char **argv){
 			{"min-field-count", required_argument, NULL, 'n'},
 			{"path", required_argument, NULL, 'p'},
 			{"regex", no_argument, NULL, 'r'},
+			{"referer", required_argument, NULL, 'f'},
 			{"verbose", no_argument, NULL, 'v'},
 			{"version", no_argument, NULL, 'V'},
 			{0, 0, 0, 0}
@@ -1514,7 +1542,7 @@ int main(int argc, char **argv){
 
 	int c;
 
-	while((c = getopt_long(argc, argv, "a::b:c:d:m:n:s:ghi:rp:vV", long_options, NULL)) != -1) {
+	while((c = getopt_long(argc, argv, "a::b:c:d:f:m:n:s:ghi:rp:vV", long_options, NULL)) != -1) {
 		// c,d,m,i,p have mandatory arguments
 		switch(c)
 		{
@@ -1542,6 +1570,7 @@ int main(int argc, char **argv){
 				}
 			}
 			break;
+
 		case 'b':
 			geo_param_supplied =0;
 			bird = optarg;
@@ -1562,13 +1591,12 @@ int main(int argc, char **argv){
 			search=STRING;
 			break;
 
-		case 'm':
-			/* Optional alternative path to database. */
-			db_path = optarg;
-			break;
-
-		case 'n':
-			minimum_field_count = atoi(optarg);
+		case 'f':
+			/* -f is set. This specificies to filter on the referrer string.
+			*/
+			params[REFERER_FILTER] = 1;
+			referer_input = optarg;
+			search=STRING;
 			break;
 
 		case 'g':
@@ -1588,6 +1616,15 @@ int main(int argc, char **argv){
 			/* Enable filtering by ip-address or ip-range */
 			params[IP_FILTER] =1;
 			ipaddress_input = optarg;
+			break;
+
+		case 'm':
+			/* Optional alternative path to database. */
+			db_path = optarg;
+			break;
+
+		case 'n':
+			minimum_field_count = atoi(optarg);
 			break;
 
 		case 's':
@@ -1639,6 +1676,6 @@ int main(int argc, char **argv){
 		exit(EXIT_FAILURE);
 	}
 	
-	parse(country_input, path_input, domain_input, ipaddress_input, http_status_input, bird, db_path, minimum_field_count);
+	parse(country_input, path_input, domain_input, ipaddress_input, http_status_input, referer_input, bird, db_path, minimum_field_count);
 	return EXIT_SUCCESS;
 }

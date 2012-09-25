@@ -30,6 +30,7 @@ typedef enum ScreenType{
 	IP_FILTER          = 3,    // filter on ip address or ip range
 	GEO_FILTER         = 4,    // filter on geographic area
 	HTTP_STATUS_FILTER = 5,    // filter on http response status codes
+	REFERER_FILTER     = 6,    // filter on referer url
 } ScreenType;
 
 typedef enum IpMatchType {
@@ -91,6 +92,11 @@ typedef struct{
 		char *string;
 		regex_t *regex;
 	} http_status;
+
+	union referer{
+		char *string;
+		regex_t *regex;
+	} referer;
 	
 	int searchtype;
 
