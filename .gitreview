@@ -1,5 +1,6 @@
 [gerrit]
 host=gerrit.wikimedia.org
 port=29418
-project=analytics/udp-filters.git
+project=analytics/udp-filters
 defaultbranch=master
+defaultrebase=0

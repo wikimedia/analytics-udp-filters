@@ -29,6 +29,7 @@
 
 
 #include <stdio.h>
+#include <stdbool.h>
 #include <stdlib.h>
 #include <ctype.h>
 #include <string.h>
@@ -50,6 +51,7 @@
 #include <GeoIPCity.h>
 #include "countries.h"
 #include "udp-filter.h"
+#include "collector-output.h"
 
 #ifndef GeoIP_cleanup
 #define GeoIP_cleanup
@@ -72,6 +74,7 @@ const char fs_delimiter = '/';
 const char us_delimiter = '-';
 const int num_predefined_filters = (HTTP_STATUS_FILTER - NO_FILTER) +1;
 int verbose_flag = 0;       // this flag indicates whether we should output detailed debug messages, default is off.
+
 
 // Default paths to GeoIP databases.
 const char *maxmind_dir     = "/usr/share/GeoIP";
@@ -492,6 +495,8 @@ char *extract_status(char *http_status_field) {
 		return http_status_field;
 	}
 }
+
+
 
 
 /**
@@ -1119,7 +1124,7 @@ void free_memory(Filter *filters, char *path_input, char *domain_input, int num_
 	}
 }
 
-void parse(char *country_input, char *path_input, char *domain_input, char *ipaddress_input, char *http_status_input, char *referer_input, char *bird, char *db_path, int minimum_field_count) {
+void parse(char *country_input, char *path_input, char *domain_input, char *ipaddress_input, char *http_status_input, char *referer_input, char *bird, char *db_path, int minimum_field_count,int output_for_collector_flag,int bot_flag) {
 	// GENERIC VARIABLES
 	char *fields[maximum_field_count];	// the number of fields we expect in a single line
 	int num_filters = 0;				// the total number of filters we detect from the command line
@@ -1139,9 +1144,14 @@ void parse(char *country_input, char *path_input, char *domain_input, char *ipad
 
 	char line[65534];
 	char *ipaddr;
+	char *ua; //user-agent, currently used to detect bots
 	char *url;
 	char *http_status;
 	char *referer;
+	char *response_size; //response size
+
+
+
 
 	// DETERMINE NUMBER OF FILTERS
 	for(n=0; n<num_predefined_filters; n++){
@@ -1353,14 +1363,34 @@ void parse(char *country_input, char *path_input, char *domain_input, char *ipad
 		// we found i fields in this line.
 		field_count_this_line = i;
 
-		ipaddr      = fields[4];
-		http_status = fields[5];
-		url         = fields[8];
-		referer     = fields[12];
+		ipaddr        = fields[4];
+		http_status   = fields[5];
+		url           = fields[8];
+		referer       = fields[12];
+                ua            = fields[13];//necessary for bot detection
+                response_size = fields[6]; //response size
+
+                /**
+                  * If the url does not match internal traffic rules, skip
+                  *
+                  */
+
+                url_s internal_traffic_url_s; // url broken down into pieces
+                info  internal_traffic_info;
+                bzero(&internal_traffic_url_s ,sizeof(internal_traffic_url_s));
+                bzero(&internal_traffic_info  ,sizeof(internal_traffic_info ));
+                internal_traffic_info.size = response_size;
+                if(!match_internal_traffic_rules(url,ipaddr,&internal_traffic_url_s,&internal_traffic_info)) {
+                  continue;
+                };
+
+                if(!internal_traffic_fill_suffix_language(&internal_traffic_info)) {
+                  continue;
+                };
 
 
 		if (url != NULL) {
-
+                        
 			if (params[DOMAIN_FILTER] == 1){
 				found += match_domain(url, filters, num_domain_filters);
 			}
@@ -1412,15 +1442,20 @@ void parse(char *country_input, char *path_input, char *domain_input, char *ipad
 				// to the ip address.  If (recode & ANONYMIZE) is
 				// true, then the IP will be replaced.
 				replace_ip_addr(fields, area, (recode & ANONYMIZE));
-			}
+			};
 
-			// print output to stdout
-			for (i=0;i<field_count_this_line;++i){
-				if (i!=0){
-					FPUTS(ws_delimiter, stdout);
-				}
-				FPUTS(fields[i], stdout);
-			}
+
+                        if(output_for_collector_flag) {
+                          internal_traffic_print_for_collector(&internal_traffic_info,ua,bot_flag);
+                        } else {
+                          // print output to stdout
+                          for (i=0;i<field_count_this_line;++i){
+                            if (i!=0){
+                              FPUTS(ws_delimiter, stdout);
+                            }
+                            FPUTS(fields[i], stdout);
+                          }
+                        }
 
 		}
 
@@ -1495,7 +1530,11 @@ void usage() {
 	printf("  -f, --force:                           Do not match on either domain, path, or ip addres.\n");
 	printf("                                         Essentially turns filtering off. Can be useful when filtering\n");
 	printf("                                         for specific country.\n");
-	printf("\n");
+        printf("\n");
+	printf("  -o, --output-collector                 Output lines will be tailored for the collector\n");
+        printf("\n");
+        printf("  -B, --bot-detect                       Bot detection will occur and project names will be labelled accordingly\n");
+        printf("\n");
 	printf("  -v, --verbose                          Output detailed debug information to stderr, not recommended\n");
 	printf("                                         in production.\n");
 	printf("  -h, --help                             Show this help message.\n");
@@ -1512,6 +1551,9 @@ int main(int argc, char **argv){
 	char *db_path = NULL;
 	char *bird = NULL;
 	int geo_param_supplied = -1;
+
+        int output_for_collector_flag = 0; // this flag indicates if the output will be tailored for collector
+        int bot_flag = 0; // this flag indicates if bot detection will occur
 	
 	// Expected minimum number of fields in a line.
 	// There  can be no fewer than this, but no more than
@@ -1520,29 +1562,31 @@ int main(int argc, char **argv){
 	int minimum_field_count = 14;
 
 	static struct option long_options[] = {
-			{"anonymize", optional_argument, NULL, 'a'},
-			{"bird", required_argument, NULL, 'b'},
-			{"country_list", required_argument, NULL, 'c'},
-			{"domain", required_argument, NULL, 'd'},
-			{"geocode", no_argument, NULL, 'g'},
-			{"help", no_argument, NULL, 'h'},
-			{"ip", required_argument, NULL, 'i'},
-			{"http-status", required_argument, NULL, 's'},
-			{"maxmind", required_argument, NULL, 'm'},
-			{"min-field-count", required_argument, NULL, 'n'},
-			{"path", required_argument, NULL, 'p'},
-			{"regex", no_argument, NULL, 'r'},
-			{"referer", required_argument, NULL, 'f'},
-			{"verbose", no_argument, NULL, 'v'},
-			{"version", no_argument, NULL, 'V'},
-			{0, 0, 0, 0}
+			{"anonymize"        , optional_argument , NULL , 'a'} ,
+			{"bird"             , required_argument , NULL , 'b'} ,
+			{"country_list"     , required_argument , NULL , 'c'} ,
+			{"domain"           , required_argument , NULL , 'd'} ,
+			{"geocode"          , no_argument       , NULL , 'g'} ,
+			{"help"             , no_argument       , NULL , 'h'} ,
+			{"ip"               , required_argument , NULL , 'i'} ,
+			{"http-status"      , required_argument , NULL , 's'} ,
+			{"maxmind"          , required_argument , NULL , 'm'} ,
+			{"min-field-count"  , required_argument , NULL , 'n'} ,
+			{"path"             , required_argument , NULL , 'p'} ,
+			{"regex"            , no_argument       , NULL , 'r'} ,
+			{"referer"          , required_argument , NULL , 'f'} ,
+			{"verbose"          , no_argument       , NULL , 'v'} ,
+			{"version"          , no_argument       , NULL , 'V'} ,
+			{"bot-detect"       , no_argument       , NULL , 'B'} ,
+			{"output-collector" , no_argument       , NULL , 'o'} ,
+			{0                  , 0                 , 0    , 0 }
 	};
 
 	signal(SIGINT,die);
 
 	int c;
 
-	while((c = getopt_long(argc, argv, "a::b:c:d:f:m:n:s:ghi:rp:vV", long_options, NULL)) != -1) {
+	while((c = getopt_long(argc, argv, "a::b:c:d:f:m:n:s:ghi:rp:vVoB", long_options, NULL)) != -1) {
 		// c,d,m,i,p have mandatory arguments
 		switch(c)
 		{
@@ -1656,7 +1700,12 @@ int main(int argc, char **argv){
 			version();
 			exit(EXIT_SUCCESS);
 			break;
-
+                case 'o':
+                        output_for_collector_flag = 1;
+                        break;
+                case 'B':
+                        bot_flag = 1;
+                        break;
 		default:
 			exit(EXIT_FAILURE);
 		}
@@ -1676,6 +1725,6 @@ int main(int argc, char **argv){
 		exit(EXIT_FAILURE);
 	}
 	
-	parse(country_input, path_input, domain_input, ipaddress_input, http_status_input, referer_input, bird, db_path, minimum_field_count);
+	parse(country_input, path_input, domain_input, ipaddress_input, http_status_input, referer_input, bird, db_path, minimum_field_count,output_for_collector_flag,bot_flag);
 	return EXIT_SUCCESS;
 }

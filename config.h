@@ -23,10 +23,10 @@
 #define HAVE_INTTYPES_H 1
 
 /* Define to 1 if you have the <libcidr.h> header file. */
-/* #undef HAVE_LIBCIDR_H */
+#define HAVE_LIBCIDR_H 1
 
 /* Define to 1 if you have the `geoip' library (-lgeoip). */
-#define HAVE_LIBGEOIP 1
+/* #undef HAVE_LIBGEOIP */
 
 /* Define to 1 if your system has a GNU libc compatible `malloc' function, and
    to 0 otherwise. */

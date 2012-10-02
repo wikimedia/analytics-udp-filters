@@ -24,13 +24,13 @@
 
 
 typedef enum ScreenType{
-	NO_FILTER          = 0,    // no filtering, write all hits to a file
-	DOMAIN_FILTER      = 1,    // filter on domain
-	PATH_FILTER        = 2,    // filter on path
-	IP_FILTER          = 3,    // filter on ip address or ip range
-	GEO_FILTER         = 4,    // filter on geographic area
-	HTTP_STATUS_FILTER = 5,    // filter on http response status codes
-	REFERER_FILTER     = 6,    // filter on referer url
+	NO_FILTER                       = 0, // no filtering, write all hits to a file
+	DOMAIN_FILTER                   = 1, // filter on domain
+	PATH_FILTER                     = 2, // filter on path
+	IP_FILTER                       = 3, // filter on ip address or ip range
+	GEO_FILTER                      = 4, // filter on geographic area
+	HTTP_STATUS_FILTER              = 5, // filter on http response status codes
+	REFERER_FILTER                  = 6, // filter on referer url
 } ScreenType;
 
 typedef enum IpMatchType {
@@ -102,6 +102,9 @@ typedef struct{
 
 	CIDR *cidr_block;
 } Filter;
+
+
+
 
 
 //PROTOTYPES
