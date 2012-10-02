@@ -52,6 +52,8 @@
 #include "countries.h"
 #include "udp-filter.h"
 #include "collector-output.h"
+#include "geo.h"
+#include "anonymize.h"
 
 #ifndef GeoIP_cleanup
 #define GeoIP_cleanup
@@ -62,12 +64,8 @@
  * run -a -d GeoIP.dat -u wiki,waka -v < example.log
  */
 
-char anonymous_ip[] = "0.0.0.0";
 
-anon_ipv4_t *anon_ipv4 = NULL;   // The libanon anon_ipv4 object for ipv4 anonymization.
-anon_ipv6_t *anon_ipv6 = NULL;   // The libanon anon_ipv6 object for ipv6 anonymization.
 
-char unknown_geography[] = "XX";
 const char comma_delimiter =',';
 const char ws_delimiter[] = " ";
 const char fs_delimiter = '/';
@@ -90,12 +88,6 @@ int params[6];   // Increase this when you add a new filter to ScreenType enum.
 
 const int maximum_field_count = 32;  // maximum number of fields ever allowed in a log line.
 
-/*
- * Example of maximum length IP addr + geocoded everything string:
- *   ABCD:ABCD:ABCD:ABCD:ABCD:ABCD:192.168.158.190|US:San Sebasti?n De Los Ballesteros:0.000000:0.000000
- * This is 100 chars.  Set MAX_BUF_LENGTH to 128 to be safe.
- */
-#define MAX_BUF_LENGTH 128
 
 /*
  * This is the expected input format, both in length and in sequence:
@@ -709,136 +701,7 @@ int match_http_status(char *http_status_field, Filter *filters, int num_http_sta
 	return 0;
 }
 
-char *geo_lookup(GeoIP *gi, char *ipaddr, int bird) {
-	/*
-	 * Lookup the country_code by ip address, we can
-	 * extend this in the future with more granular data
-	 * such as region,city or even zipcode.
-	 */
-	static char area[MAX_BUF_LENGTH];
 
-	// set the charset to UTF8
-	GeoIP_set_charset(gi, GEOIP_CHARSET_UTF8);
-
-	switch(bird){
-		case COUNTRY: {
-			const char *country= GeoIP_country_code_by_addr(gi, ipaddr);
-			if (country==NULL){
-				strncpy(area, unknown_geography, MAX_BUF_LENGTH);
-			} else {
-				strncpy(area, country, MAX_BUF_LENGTH);
-			}
-
-		}
-		break;
-
-		case REGION:{
-			GeoIPRegion *gir;
-			gir=GeoIP_region_by_addr(gi,ipaddr);
-			if(gir == NULL || strlen(gir->region)==0){
-				strncpy(area, unknown_geography, MAX_BUF_LENGTH);
-			} else {
-				strncpy(area, gir->region, MAX_BUF_LENGTH);
-			}
-
-			if(gir != NULL) {
-				GeoIPRegion_delete(gir);
-			}
-			break;
-		}
-
-		case CITY:{
-			GeoIPRecord *grecord;
-			char *city;
-			int mustFreeCity = 0;
-			grecord = GeoIP_record_by_addr(gi, ipaddr);
-			if (grecord !=NULL){
-				if (grecord->city == NULL){
-					strncpy(area, unknown_geography, MAX_BUF_LENGTH);
-				} else {
-					int len = strlen(grecord->city);
-					city = strdup(grecord->city);
-					mustFreeCity = 1;
-					strncpy(area,city, MAX_BUF_LENGTH);
-					replace_space_with_underscore(area, len);
-				}
-				if (mustFreeCity) {
-					free(city);
-				}
-				GeoIPRecord_delete(grecord);
-			} else {
-				strncpy(area, unknown_geography, MAX_BUF_LENGTH);
-			}
-			break;
-		}
-
-		case LAT_LON: {
-			GeoIPRecord *grecord;
-			grecord = GeoIP_record_by_addr(gi, ipaddr);
-			if (grecord!=NULL){
-				snprintf(area, MAX_BUF_LENGTH, "%f,%f", grecord->latitude, grecord->longitude);
-				GeoIPRecord_delete(grecord);
-			} else {
-				strncpy(area, unknown_geography, MAX_BUF_LENGTH);
-			}
-			break;
-		}
-
-		case EVERYTHING: {
-			GeoIPRecord *grecord;
-			char *country = unknown_geography, *region = unknown_geography, *city = unknown_geography;
-			int mustFreeCity = 0;
-			float lat = 0.0, lon = 0.0;
-			grecord = GeoIP_record_by_addr(gi, ipaddr);
-			if (grecord != NULL) {
-				if (grecord->city != NULL) {
-					city = strdup(grecord->city);
-					mustFreeCity = 1;
-				}
-				replace_space_with_underscore(city, strlen(city));
-
-				if (grecord->region != NULL) {
-					region = grecord->region;
-				}
-				if (grecord->country_code != NULL) {
-					country = grecord->country_code;
-				}
-				lat = grecord->latitude;
-				lon = grecord->longitude;
-			}
-			snprintf(area, MAX_BUF_LENGTH, "%s|%s|%s|%f,%f", country, region, city, lat, lon);
-
-			if (grecord != NULL) {
-				GeoIPRecord_delete(grecord);
-			}
-
-			if (mustFreeCity) {
-				free(city);
-			}
-			break;
-		}
-
-		default:
-			break;
-	}
-	return area;
-}
-
-int geo_check(const char *country_code, char *countries[], int countries_count) {
-	if (!country_code){
-		return 0;
-	}
-	int i;
-	for (i = 0; i < countries_count; ++i) {
-		if (verbose_flag){
-			fprintf(stderr, "Comparing: %s <--> %s\n", country_code, countries[i]);
-		}
-		if (strcmp(country_code, countries[i]) == 0) {
-			return 1;
-		}
-	}
-	return 0;
-}
 
 
 /*
@@ -932,146 +795,8 @@ void replace_ip_addr(char *fields[], char* area, int should_anonymize_ip) {
 
 
 
-/**
- * Initializes global anon_ipv4 and anon_ipv6 objects.
- * If anon_key_salt is NULL, a random key salt will
- * be used.
- */
-void init_anon_ip(uint8_t *anon_key_salt) {
-	anon_key_t *anon_key = anon_key_new();
-
-	// if anon_key_salt is set, then
-	// use it as the salt to IP address anonymization hashing.
-	if (anon_key_salt) {
-		anon_key_set_key(anon_key, anon_key_salt, strlen((char *)anon_key_salt));
-	}
-	// else choose a random key.
-	else {
-		anon_key_set_random(anon_key);
-	}
-
-	// initialize the ipv4 and ipv6 objects
-	anon_ipv4 = anon_ipv4_new();
-	anon_ipv6 = anon_ipv6_new();
-
-	if (!anon_ipv4 || !anon_ipv6) {
-		fprintf(stderr, "Failed to initialize anonymization IP mapping.\n");
-		anon_key_delete(anon_key);
-		exit(EXIT_FAILURE);
-    }
-
-    anon_ipv4_set_key(anon_ipv4, anon_key);
-    anon_ipv6_set_key(anon_ipv6, anon_key);
-}
 
 
-/**
- * Anonymizes an IPv4 or IPv6 string.
- *
- * If the globals anon_ipv4 or anon_ipv6 are not set
- * then the global anonymous_ip string will be used
- * to anonymize the IP.
- *
- * @param  string ip  string IP address.
- * @return string anonymized IP address.
- */
-char *anonymize_ip_address(char *ip) {
-	in_addr_t  raw4_address, raw4_anon_address;
-	in6_addr_t raw6_address, raw6_anon_address;
-	// AF_INET or AF_INET6
-	int   ai_family;
-	// pointer to the binary form of ip.
-	void *raw_address;
-	// string form of anonymized ip.
-	char *anonymized_ip;
-
-	// Big enough to hold 128 IPv6 addresses.
-	// This is just a byte array meant hold raw
-	// IPv4 or IPv6 addresses.  determine_ai_family
-	// will set it to the raw address returned by
-	// getaddrinfo().
-	// NOTE:  This is to avoid an extra call to
-	// inet_pton, since getaddrinfo() converts
-	// a string IP address to its raw binary form.
-	raw_address = malloc(sizeof(in6_addr_t));
-	ai_family   = determine_ai_family(ip, raw_address); // AF_INET or AF_INET6
-
-	// if raw_address is NULL, then getaddrinfo() either
-	// couldn't get ai_family or it failed converting
-	// ip into a binary raw IP address.  Return the
-	// default anonymous_ip string.
-	if (raw_address == NULL) {
-		fprintf(stderr, "determine_ai_family did not return raw_address for %s.", ip);
-		return anonymous_ip;
-	}
-
-	switch (ai_family) {
-		// NOTE.  anon_ipv4_map_pref() and anon_ipv6_map_pref
-		// take a ip*_addr_t struct as the raw address second
-		// argument, NOT a pointer to one.  You'd think this
-		// distinction wouldn't be important, but it is.
-		// I haven't figured out why, but simply dereferencing
-		// and casting the void *raw_address to the proper type
-		// doesn't work.  You *can* get this to compile (if you
-		// use a char * instead of void *), but unless you
-		// memcpy into a ip*_addr_t struct, the anon_ function
-		// will return unreliable results.  I was getting the same
-		// anonymized IPs for different but similiar IPs.
-
-		// anonymize IPv4 address
-		case AF_INET:
-			if (anon_ipv4 == NULL) {
-				anonymized_ip = anonymous_ip;
-			}
-			else {
-				// Anonymize the IPv4 address, saved in raw4_anon_address.
-				memcpy(&raw4_address, raw_address, sizeof(in_addr_t));
-				anon_ipv4_map_pref(anon_ipv4, raw4_address, &raw4_anon_address);
-				// printf("anon_ipv4_map_pref %u -> %u\n", (unsigned int)(raw_address[0]), (unsigned int)raw4_anon_address);
-
-				// Convert the raw anonymized address back to a string
-				anonymized_ip = malloc(INET_ADDRSTRLEN);
-				// If failed, use anonymous_ip "0.0.0.0".  This should never happen.
-				if (!inet_ntop(AF_INET, &raw4_anon_address, anonymized_ip, INET_ADDRSTRLEN)) {
-					perror("anonymize_ip_address: inet_ntop could not convert raw anonymized IPv4 address to a string");
-					anonymized_ip = anonymous_ip;
-				}
-			}
-			break;
-
-		// anonymize IPv6 address
-		case AF_INET6:
-			if (anon_ipv6 == NULL) {
-				anonymized_ip = anonymous_ip;
-			}
-			else {
-				// Anonymize the IPv6 address, saved in raw6_anon_address.
-				memcpy(&raw6_address, raw_address, sizeof(in6_addr_t));
-				anon_ipv6_map_pref(anon_ipv6, raw6_address, &raw6_anon_address);
-				// Convert the raw anonymized address back to a string
-				anonymized_ip = malloc(INET6_ADDRSTRLEN);
-
-				// If failed, use anonymous_ip "0.0.0.0".  This should never happen.
-				if (!inet_ntop(AF_INET6, &raw6_anon_address, anonymized_ip, INET6_ADDRSTRLEN)) {
-					perror("anonymize_ip_address: inet_ntop could not convert raw anonymized IPv6 address to a string");
-					anonymized_ip = anonymous_ip;
-				}
-			}
-			break;
-
-		// Default use anonymous_ip "0.0.0.0"
-		// This will only happen if ai_family couldn't
-		// be determined.
-		default:
-			anonymized_ip = anonymous_ip;
-			break;
-	}
-	// don't need this anymore.
-	free(raw_address);
-
-	// printf("Anonymized %s -> %s\n", ip, anonymized_ip);
-	return anonymized_ip;
-}
 
 void free_memory(Filter *filters, char *path_input, char *domain_input, int num_filters, GeoIP* gi, char *countries[], int num_countries_filters) {
 	int i;
@@ -1371,8 +1096,7 @@ void parse(char *country_input, char *path_input, char *domain_input, char *ipad
                 response_size = fields[6]; //response size
 
                 /**
-                  * If the url does not match internal traffic rules, skip
-                  *
+                  * Collector output and internal traffic filters here
                   */
 
                 url_s internal_traffic_url_s; // url broken down into pieces
@@ -1380,13 +1104,17 @@ void parse(char *country_input, char *path_input, char *domain_input, char *ipad
                 bzero(&internal_traffic_url_s ,sizeof(internal_traffic_url_s));
                 bzero(&internal_traffic_info  ,sizeof(internal_traffic_info ));
                 internal_traffic_info.size = response_size;
-                if(!match_internal_traffic_rules(url,ipaddr,&internal_traffic_url_s,&internal_traffic_info)) {
+                char url_dup[7000];
+                strcpy(url_dup,url);
+                if(!match_internal_traffic_rules(url_dup,ipaddr,&internal_traffic_url_s,&internal_traffic_info)) {
                   continue;
                 };
 
                 if(!internal_traffic_fill_suffix_language(&internal_traffic_info)) {
                   continue;
                 };
+
+                /***************************************************************/
 
 
 		if (url != NULL) {
@@ -1413,7 +1141,7 @@ void parse(char *country_input, char *path_input, char *domain_input, char *ipad
 
 			if (params[GEO_FILTER] == 1){
 				area = geo_lookup(gi, ipaddr, bird_int);
-				found += geo_check(area, countries, num_countries_filters);
+				found += geo_check(area, countries, num_countries_filters,verbose_flag);
 				if (verbose_flag){
 					fprintf(stderr, "IP address: %s was geocoded as: %s\n", ipaddr, area);
 				}

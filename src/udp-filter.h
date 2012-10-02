@@ -16,6 +16,9 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
+#ifndef __UDP_FILTER_H
+#define __UDP_FILTER_H
+
 #include <regex.h>
 #include <stdint.h>
 #include <libcidr.h>
@@ -117,3 +120,14 @@ regex_t * init_regex(char *token);
 char *anonymize_ip_address(char *ip);
 int   determine_ai_family(char *ip, void *raw_address);
 void  init_anon_ip(uint8_t *anon_key_salt);
+
+/*
+ * Example of maximum length IP addr + geocoded everything string:
+ *   ABCD:ABCD:ABCD:ABCD:ABCD:ABCD:192.168.158.190|US:San Sebasti?n De Los Ballesteros:0.000000:0.000000
+ * This is 100 chars.  Set MAX_BUF_LENGTH to 128 to be safe.
+ */
+#define MAX_BUF_LENGTH 128
+
+
+
+#endif

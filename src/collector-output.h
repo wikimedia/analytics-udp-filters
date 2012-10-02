@@ -1,9 +1,10 @@
-#ifndef __INTERNAL_TRAFFIC_H
-#define __INTERNAL_TRAFFIC_H
+#ifndef __COLLECTOR_OUTPUT_H
+#define __COLLECTOR_OUTPUT_H
 
 #include <stdbool.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stdio.h>
 
 
 /*

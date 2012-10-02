@@ -1,5 +1,14 @@
 bin_PROGRAMS = udp-filter
-udp_filter_SOURCES = src/udp-filter.c src/udp-filter.h src/countries.c src/countries.h src/collector-output.c src/collector-output.h
+udp_filter_SOURCES = src/udp-filter.c       \
+                     src/udp-filter.h       \
+                     src/countries.c        \
+                     src/countries.h        \
+                     src/collector-output.c \
+                     src/collector-output.h \
+                     src/geo.h              \
+                     src/geo.c              \
+                     src/anonymize.h        \
+                     src/anonymize.c
 if DEBUG
 	AM_CFLAGS = -g3 -O0 -Wall -pedantic
 	AM_CXXFLAGS = -g3 -O0 -Wall -pedantic
