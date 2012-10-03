@@ -23,7 +23,7 @@
 #endif
 
 #define MAX_ERROR_MSG 0x1000
-#define VERSION_NUMBER 0.2.6
+#define VERSION_NUMBER 0.3.0 //Please keep incrementing this after each bug or new feature
 #define VERSION_STRING_HELPER(X) #X
 #define VERSION_STRING(X) VERSION_STRING_HELPER(X)
 
@@ -70,7 +70,9 @@ const char comma_delimiter =',';
 const char ws_delimiter[] = " ";
 const char fs_delimiter = '/';
 const char us_delimiter = '-';
-const int num_predefined_filters = (HTTP_STATUS_FILTER - NO_FILTER) +1;
+int params[7];   // Increase this when you add a new filter to ScreenType enum.
+//const int num_predefined_filters = (HTTP_STATUS_FILTER - NO_FILTER) +1;
+const int num_predefined_filters = sizeof(params)/sizeof(int);
 int verbose_flag = 0;       // this flag indicates whether we should output detailed debug messages, default is off.
 
 
@@ -83,8 +85,6 @@ const char *db_region_path  = "/usr/share/GeoIP/GeoIPRegion.dat";
 SearchType search = STRING;
 RecodeType recode = NO;
 IpMatchType ipmatch = SIMPLE;
-
-int params[6];   // Increase this when you add a new filter to ScreenType enum.
 
 const int maximum_field_count = 32;  // maximum number of fields ever allowed in a log line.
 
@@ -773,15 +773,14 @@ void replace_ip_addr(char *fields[], char* area, int should_anonymize_ip) {
 	 * area is a geocoded string to be appended to the IP address.  If it
 	 * is null, nothing will be appended.
 	 * If should_anonymize_ip is true, the IP address will be replaced with anonoymous_ip.
-	 * 
+	 *
 	 * fields is by reference, so fields[4] will be replaced with the resulting string.
 	 */
-	
+
 	if (should_anonymize_ip) {
 		fields[4] = anonymize_ip_address(fields[4]);
 	}
-	
-	
+
 	if (area != NULL)
 	{
 		// temporary variable in which to store new field with geocode string.
@@ -793,8 +792,137 @@ void replace_ip_addr(char *fields[], char* area, int should_anonymize_ip) {
 }
 
 
+<<<<<<< HEAD
 
 
+=======
+/**
+ * Initializes global anon_ipv4 and anon_ipv6 objects.
+ * If anon_key_salt is NULL, a random key salt will
+ * be used.
+ */
+void init_anon_ip(uint8_t *anon_key_salt) {
+	anon_key_t *anon_key = anon_key_new();
+
+	// if anon_key_salt is set, then
+	// use it as the salt to IP address anonymization hashing.
+	if (anon_key_salt) {
+		anon_key_set_key(anon_key, anon_key_salt, strlen((char *)anon_key_salt));
+	}
+	// else choose a random key.
+	else {
+		anon_key_set_random(anon_key);
+	}
+
+	// initialize the ipv4 and ipv6 objects
+	anon_ipv4 = anon_ipv4_new();
+	anon_ipv6 = anon_ipv6_new();
+
+	if (!anon_ipv4 || !anon_ipv6) {
+		fprintf(stderr, "Failed to initialize anonymization IP mapping.\n");
+		anon_key_delete(anon_key);
+		exit(EXIT_FAILURE);
+    }
+
+    anon_ipv4_set_key(anon_ipv4, anon_key);
+    anon_ipv6_set_key(anon_ipv6, anon_key);
+}
+
+
+/**
+ * Anonymizes an IPv4 or IPv6 string.
+ *
+ * If the globals anon_ipv4 or anon_ipv6 are not set
+ * then the global anonymous_ip string will be used
+ * to anonymize the IP.
+ *
+ * @param  string ip  string IP address.
+ * @return string anonymized IP address.
+ */
+char *anonymize_ip_address(char *ip) {
+	in_addr_t  raw4_address, raw4_anon_address;
+	in6_addr_t raw6_address, raw6_anon_address;
+	// AF_INET or AF_INET6
+	int   ai_family;
+	// pointer to the binary form of ip.
+	void *raw_address;
+	// string form of anonymized ip.
+	char *anonymized_ip;
+
+	// Big enough to hold 128 IPv6 addresses.
+	// This is just a byte array meant hold raw
+	// IPv4 or IPv6 addresses.  determine_ai_family
+	// will set it to the raw address returned by
+	// getaddrinfo().
+	// NOTE:  This is to avoid an extra call to
+	// inet_pton, since getaddrinfo() converts
+	// a string IP address to its raw binary form.
+	raw_address = malloc(sizeof(in6_addr_t));
+	ai_family   = determine_ai_family(ip, raw_address); // AF_INET or AF_INET6
+
+	// if raw_address is NULL, then getaddrinfo() either
+	// couldn't get ai_family or it failed converting
+	// ip into a binary raw IP address.  Return the
+	// default anonymous_ip string.
+	if (raw_address == NULL) {
+		fprintf(stderr, "determine_ai_family did not return raw_address for %s.", ip);
+		return anonymous_ip;
+	}
+
+	switch (ai_family) {
+		// NOTE.  anon_ipv4_map_pref() and anon_ipv6_map_pref
+		// take a ip*_addr_t struct as the raw address second
+		// argument, NOT a pointer to one.  You'd think this
+		// distinction wouldn't be important, but it is.
+		// I haven't figured out why, but simply dereferencing
+		// and casting the void *raw_address to the proper type
+		// doesn't work.  You *can* get this to compile (if you
+		// use a char * instead of void *), but unless you
+		// memcpy into a ip*_addr_t struct, the anon_ function
+		// will return unreliable results.  I was getting the same
+		// anonymized IPs for different but similiar IPs.
+
+		// anonymize IPv4 address
+		case AF_INET:
+			if (anon_ipv4 == NULL) {
+				anonymized_ip = anonymous_ip;
+			}
+			else {
+				// Anonymize the IPv4 address, saved in raw4_anon_address.
+				memcpy(&raw4_address, raw_address, sizeof(in_addr_t));
+				anon_ipv4_map_pref(anon_ipv4, raw4_address, &raw4_anon_address);
+				// printf("anon_ipv4_map_pref %u -> %u\n", (unsigned int)(raw_address[0]), (unsigned int)raw4_anon_address);
+
+				// Convert the raw anonymized address back to a string
+				anonymized_ip = malloc(INET_ADDRSTRLEN);
+				// If failed, use anonymous_ip "0.0.0.0".  This should never happen.
+				if (!inet_ntop(AF_INET, &raw4_anon_address, anonymized_ip, INET_ADDRSTRLEN)) {
+					perror("anonymize_ip_address: inet_ntop could not convert raw anonymized IPv4 address to a string");
+					anonymized_ip = anonymous_ip;
+				}
+			}
+			break;
+
+		// anonymize IPv6 address
+		case AF_INET6:
+			if (anon_ipv6 == NULL) {
+				anonymized_ip = anonymous_ip;
+			}
+			else {
+				// Anonymize the IPv6 address, saved in raw6_anon_address.
+				memcpy(&raw6_address, raw_address, sizeof(in6_addr_t));
+				anon_ipv6_map_pref(anon_ipv6, raw6_address, &raw6_anon_address);
+				// Convert the raw anonymized address back to a string
+				anonymized_ip = malloc(INET6_ADDRSTRLEN);
+
+				// If failed, use anonymous_ip "0.0.0.0".  This should never happen.
+				if (!inet_ntop(AF_INET6, &raw6_anon_address, anonymized_ip, INET6_ADDRSTRLEN)) {
+					perror("anonymize_ip_address: inet_ntop could not convert raw anonymized IPv6 address to a string");
+					anonymized_ip = anonymous_ip;
+				}
+			}
+			break;
+>>>>>>> 4180422... Misc fixes
 
 
 
@@ -857,14 +985,14 @@ void parse(char *country_input, char *path_input, char *domain_input, char *ipad
 	int num_path_filters = 0;  		    // the total number of path filters
 	int num_ipaddress_filters = 0;		// the total number of ipaddress filter
 	int num_countries_filters = 0; 	    // the total number countries we want to restrict the filtering
-	int num_http_status_filters = 0; 	// the total number of http status we want to restrict the filtering.  
+	int num_http_status_filters = 0; 	// the total number of http status we want to restrict the filtering.
 	int num_referer_filters = 0;
 	int required_hits = 0;
-	int bird_int = 0;			
+	int bird_int = 0;
 	int i;
 	int j;
 	int n;
-	
+
 	int field_count_this_line=0;  // number of fields found in the current line
 
 	char line[65534];
@@ -925,7 +1053,7 @@ void parse(char *country_input, char *path_input, char *domain_input, char *ipad
 					num_http_status_filters = determine_num_obs(http_status_input, comma_delimiter);
 					required_hits+=1;
 				}
-			}		
+			}
 			break;
 		}
 	}
@@ -1049,13 +1177,13 @@ void parse(char *country_input, char *path_input, char *domain_input, char *ipad
 	}
 
 	if (verbose_flag){
-		fprintf(stderr, "num_path_filters:%d\tnum_domain_filters:%d\tnum_http_status_filters:%d\tip_address_count:%d\tcountries_count:%d\n",\
-			num_path_filters,num_domain_filters,num_http_status_filters,num_ipaddress_filters,num_countries_filters);
+		fprintf(stderr, "num_path_filters:%d\tnum_domain_filters:%d\tnum_http_status_filters:%d\tip_address_count:%d\tcountries_count:%d\treferer_count:%d\n",\
+			num_path_filters, num_domain_filters, num_http_status_filters, num_ipaddress_filters, num_countries_filters, num_referer_filters);
 	}
 
 
 	// Now that we have initilaized all the filters,
-	// do the actual filtering and conversion of the 
+	// do the actual filtering and conversion of the
 	// incoming data.
 	while (!feof(stdin)) {
 		int found =0;
@@ -1088,12 +1216,19 @@ void parse(char *country_input, char *path_input, char *domain_input, char *ipad
 		// we found i fields in this line.
 		field_count_this_line = i;
 
+<<<<<<< HEAD
 		ipaddr        = fields[4];
 		http_status   = fields[5];
 		url           = fields[8];
 		referer       = fields[12];
                 ua            = fields[13];//necessary for bot detection
                 response_size = fields[6]; //response size
+=======
+		ipaddr      = fields[4];
+		http_status = fields[5];
+		url         = fields[8];
+		referer     = fields[11];
+>>>>>>> 4180422... Misc fixes
 
                 /**
                   * Collector output and internal traffic filters here
@@ -1126,7 +1261,7 @@ void parse(char *country_input, char *path_input, char *domain_input, char *ipad
 			if (params[PATH_FILTER] == 1){
 				found += match_path(url, filters, num_path_filters);
 			}
-			
+
 			if (params[HTTP_STATUS_FILTER] == 1){
 				found += match_http_status(http_status, filters, num_http_status_filters);
 			}
@@ -1151,7 +1286,7 @@ void parse(char *country_input, char *path_input, char *domain_input, char *ipad
 		// required_hits will equal the number of filters
 		// given.  These include ip, domain, path, status,
 		// and country filtering.  If no filters where given,
-		// then found will be 0 AND require_hits will be 0, 
+		// then found will be 0 AND require_hits will be 0,
 		// allowing the line to pass through.
 		if (found >= required_hits) {
 			// if we need to replace the IP addr
@@ -1216,14 +1351,14 @@ void usage() {
 	version();
 
 	printf("Usage: udp-filter [OPTION] ...\n");
-	printf("  One of --path, --ip or --domain are mandatory.  You can use all three, but you must give at least one of them.\n");
+	printf("  udp-filter reads from stdin and writes to stdout by default.");
 	printf("\n");
 	printf("Options:\n");
-	printf("  -p paths, --path=paths                 Path portions of the request URI to match.  Comma separated\n");
+	printf("  -p paths, --path=paths                 Path portions of the request URI to match.  Comma separated.\n");
 	printf("\n");
 	printf("  -d domains, --domain=domain            Parts of domain names to match.  Comma separated.\n");
 	printf("\n");
-	printf("  -r referers, --referers=domain 		 Parts of the referer domain to match. Comma separated\n");
+	printf("  -r referers, --referers=domain         Parts of the referer domain to match. Comma separated.\n");
 	printf("\n");
 	printf("  -i addresses, --ip=addresses           IP address(es) to match.  Comma seperated.  Accepts IPv4\n");
 	printf("                                         and IPv6 addresses and CIDR ranges.\n");
@@ -1255,6 +1390,7 @@ void usage() {
 	printf("\n");
 	printf("  -m path, --maxmind=path                Alternative path to MaxMind database.  Default %s.\n", maxmind_dir);
 	printf("\n");
+<<<<<<< HEAD
 	printf("  -f, --force:                           Do not match on either domain, path, or ip addres.\n");
 	printf("                                         Essentially turns filtering off. Can be useful when filtering\n");
 	printf("                                         for specific country.\n");
@@ -1263,6 +1399,8 @@ void usage() {
         printf("\n");
         printf("  -B, --bot-detect                       Bot detection will occur and project names will be labelled accordingly\n");
         printf("\n");
+=======
+>>>>>>> 4180422... Misc fixes
 	printf("  -v, --verbose                          Output detailed debug information to stderr, not recommended\n");
 	printf("                                         in production.\n");
 	printf("  -h, --help                             Show this help message.\n");
@@ -1280,9 +1418,12 @@ int main(int argc, char **argv){
 	char *bird = NULL;
 	int geo_param_supplied = -1;
 
+<<<<<<< HEAD
         int output_for_collector_flag = 0; // this flag indicates if the output will be tailored for collector
         int bot_flag = 0; // this flag indicates if bot detection will occur
 	
+=======
+>>>>>>> 4180422... Misc fixes
 	// Expected minimum number of fields in a line.
 	// There  can be no fewer than this, but no more than
 	// maximum_field_count space separated fields in a long line.
@@ -1314,8 +1455,13 @@ int main(int argc, char **argv){
 
 	int c;
 
+<<<<<<< HEAD
 	while((c = getopt_long(argc, argv, "a::b:c:d:f:m:n:s:ghi:rp:vVoB", long_options, NULL)) != -1) {
 		// c,d,m,i,p have mandatory arguments
+=======
+	while((c = getopt_long(argc, argv, "a::b:c:d:f:m:n:s:ghi:rp:vV", long_options, NULL)) != -1) {
+		// b,c,d,f,i,m,n,s,p have mandatory arguments
+>>>>>>> 4180422... Misc fixes
 		switch(c)
 		{
 		case 'a':
@@ -1438,7 +1584,7 @@ int main(int argc, char **argv){
 			exit(EXIT_FAILURE);
 		}
 	}
-	
+
 	// minimum_field_count cannot be greater than maximum_field_count
 	if (minimum_field_count > maximum_field_count)
 	{
@@ -1447,12 +1593,24 @@ int main(int argc, char **argv){
 		usage();
 		exit(EXIT_FAILURE);
 	}
-	
+
 	if (geo_param_supplied==-1 && params[GEO_FILTER] ==1){
 		fprintf(stderr,"You supplied the -g parameter without specifying the -b parameter.\n");
 		exit(EXIT_FAILURE);
 	}
+<<<<<<< HEAD
 	
 	parse(country_input, path_input, domain_input, ipaddress_input, http_status_input, referer_input, bird, db_path, minimum_field_count,output_for_collector_flag,bot_flag);
 	return EXIT_SUCCESS;
+=======
+
+	if (argc==1) {
+		/* There were no options given at all */
+		usage();
+		exit(EXIT_FAILURE);
+	} else {
+		parse(country_input, path_input, domain_input, ipaddress_input, http_status_input, referer_input, bird, db_path, minimum_field_count);
+		return EXIT_SUCCESS;
+	}
+>>>>>>> 4180422... Misc fixes
 }
