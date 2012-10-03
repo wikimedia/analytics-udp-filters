@@ -18,6 +18,7 @@
 
 #include "geo.h"
 #include "udp-filter.h"
+#include "utils.h"
 char unknown_geography[] = "XX";
 
 

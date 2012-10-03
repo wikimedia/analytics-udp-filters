@@ -71,7 +71,6 @@ const char ws_delimiter[] = " ";
 const char fs_delimiter = '/';
 const char us_delimiter = '-';
 int params[7];   // Increase this when you add a new filter to ScreenType enum.
-//const int num_predefined_filters = (HTTP_STATUS_FILTER - NO_FILTER) +1;
 const int num_predefined_filters = sizeof(params)/sizeof(int);
 int verbose_flag = 0;       // this flag indicates whether we should output detailed debug messages, default is off.
 
@@ -137,7 +136,7 @@ int determine_num_obs(char *raw_input, const char delimiter) {
 	}
 	return size;
 }
-
+/*
 void replace_space_with_underscore(char *string, int len){
 	int i;
 	for (i=0;i<len; i++){
@@ -146,6 +145,7 @@ void replace_space_with_underscore(char *string, int len){
 		}
 	}
 }
+*/
 
 regex_t *init_regex(char *token) {
 	/*
@@ -472,7 +472,7 @@ char *extract_status(char *http_status_field) {
 	if (http_status_field==NULL){
 		return NULL;
 	}
-	// if there is a / in the field, then 
+	// if there is a / in the field, then
 	// return a pointer pointing to the string
 	// starting immediately after the /.
 	char *http_status = strstr(http_status_field, "/") + 1;
@@ -482,18 +482,15 @@ char *extract_status(char *http_status_field) {
 	}
 	else
 	{
-		// else assume the status field in the line 
+		// else assume the status field in the line
 		// is just a http response status
 		return http_status_field;
 	}
 }
 
-
-
-
 /**
  * Returns true if ip_address belongs to an IP address range in filters.
- * 
+ *
  * char   *ip_address  - IP address string, either IPv4 or IPv6.
  * Filter *filters     - Array of filters on which to match.
  * int     num_filters - number of filters in filters array.
@@ -508,7 +505,7 @@ int match_ip_address(char *ip_address, Filter *filters, int num_filters){
 	// start with matched == false.
 	int matched = 0;
 
-	// Loop through each filter.  
+	// Loop through each filter.
 	// If the filter has a cidr_block,
 	// then check to see if ip_address
 	// is in that block.
@@ -791,16 +788,11 @@ void replace_ip_addr(char *fields[], char* area, int should_anonymize_ip) {
 	}
 }
 
-
-<<<<<<< HEAD
-
-
-=======
 /**
  * Initializes global anon_ipv4 and anon_ipv6 objects.
  * If anon_key_salt is NULL, a random key salt will
  * be used.
- */
+
 void init_anon_ip(uint8_t *anon_key_salt) {
 	anon_key_t *anon_key = anon_key_new();
 
@@ -827,7 +819,7 @@ void init_anon_ip(uint8_t *anon_key_salt) {
     anon_ipv4_set_key(anon_ipv4, anon_key);
     anon_ipv6_set_key(anon_ipv6, anon_key);
 }
-
+*/
 
 /**
  * Anonymizes an IPv4 or IPv6 string.
@@ -838,7 +830,7 @@ void init_anon_ip(uint8_t *anon_key_salt) {
  *
  * @param  string ip  string IP address.
  * @return string anonymized IP address.
- */
+ 
 char *anonymize_ip_address(char *ip) {
 	in_addr_t  raw4_address, raw4_anon_address;
 	in6_addr_t raw6_address, raw6_anon_address;
@@ -922,10 +914,8 @@ char *anonymize_ip_address(char *ip) {
 				}
 			}
 			break;
->>>>>>> 4180422... Misc fixes
 
-
-
+*/
 void free_memory(Filter *filters, char *path_input, char *domain_input, int num_filters, GeoIP* gi, char *countries[], int num_countries_filters) {
 	int i;
 	if(gi){
@@ -1177,7 +1167,7 @@ void parse(char *country_input, char *path_input, char *domain_input, char *ipad
 	}
 
 	if (verbose_flag){
-		fprintf(stderr, "num_path_filters:%d\tnum_domain_filters:%d\tnum_http_status_filters:%d\tip_address_count:%d\tcountries_count:%d\treferer_count:%d\n",\
+		fprintf(stderr, "num_path_filters:%d\tnum_domain_filters:%d\tnum_http_status_filters:%d\tip_address_count:%d\tcountries_count:%d\treferer_count:%d\n",
 			num_path_filters, num_domain_filters, num_http_status_filters, num_ipaddress_filters, num_countries_filters, num_referer_filters);
 	}
 
@@ -1216,19 +1206,12 @@ void parse(char *country_input, char *path_input, char *domain_input, char *ipad
 		// we found i fields in this line.
 		field_count_this_line = i;
 
-<<<<<<< HEAD
 		ipaddr        = fields[4];
 		http_status   = fields[5];
 		url           = fields[8];
 		referer       = fields[12];
                 ua            = fields[13];//necessary for bot detection
                 response_size = fields[6]; //response size
-=======
-		ipaddr      = fields[4];
-		http_status = fields[5];
-		url         = fields[8];
-		referer     = fields[11];
->>>>>>> 4180422... Misc fixes
 
                 /**
                   * Collector output and internal traffic filters here
@@ -1243,17 +1226,17 @@ void parse(char *country_input, char *path_input, char *domain_input, char *ipad
                 strcpy(url_dup,url);
                 if(!match_internal_traffic_rules(url_dup,ipaddr,&internal_traffic_url_s,&internal_traffic_info)) {
                   continue;
-                };
+                }
 
                 if(!internal_traffic_fill_suffix_language(&internal_traffic_info)) {
                   continue;
-                };
+                }
 
                 /***************************************************************/
 
 
 		if (url != NULL) {
-                        
+
 			if (params[DOMAIN_FILTER] == 1){
 				found += match_domain(url, filters, num_domain_filters);
 			}
@@ -1390,17 +1373,10 @@ void usage() {
 	printf("\n");
 	printf("  -m path, --maxmind=path                Alternative path to MaxMind database.  Default %s.\n", maxmind_dir);
 	printf("\n");
-<<<<<<< HEAD
-	printf("  -f, --force:                           Do not match on either domain, path, or ip addres.\n");
-	printf("                                         Essentially turns filtering off. Can be useful when filtering\n");
-	printf("                                         for specific country.\n");
-        printf("\n");
 	printf("  -o, --output-collector                 Output lines will be tailored for the collector\n");
         printf("\n");
         printf("  -B, --bot-detect                       Bot detection will occur and project names will be labelled accordingly\n");
         printf("\n");
-=======
->>>>>>> 4180422... Misc fixes
 	printf("  -v, --verbose                          Output detailed debug information to stderr, not recommended\n");
 	printf("                                         in production.\n");
 	printf("  -h, --help                             Show this help message.\n");
@@ -1417,13 +1393,9 @@ int main(int argc, char **argv){
 	char *db_path = NULL;
 	char *bird = NULL;
 	int geo_param_supplied = -1;
-
-<<<<<<< HEAD
         int output_for_collector_flag = 0; // this flag indicates if the output will be tailored for collector
         int bot_flag = 0; // this flag indicates if bot detection will occur
-	
-=======
->>>>>>> 4180422... Misc fixes
+
 	// Expected minimum number of fields in a line.
 	// There  can be no fewer than this, but no more than
 	// maximum_field_count space separated fields in a long line.
@@ -1455,13 +1427,8 @@ int main(int argc, char **argv){
 
 	int c;
 
-<<<<<<< HEAD
 	while((c = getopt_long(argc, argv, "a::b:c:d:f:m:n:s:ghi:rp:vVoB", long_options, NULL)) != -1) {
-		// c,d,m,i,p have mandatory arguments
-=======
-	while((c = getopt_long(argc, argv, "a::b:c:d:f:m:n:s:ghi:rp:vV", long_options, NULL)) != -1) {
 		// b,c,d,f,i,m,n,s,p have mandatory arguments
->>>>>>> 4180422... Misc fixes
 		switch(c)
 		{
 		case 'a':
@@ -1598,19 +1565,14 @@ int main(int argc, char **argv){
 		fprintf(stderr,"You supplied the -g parameter without specifying the -b parameter.\n");
 		exit(EXIT_FAILURE);
 	}
-<<<<<<< HEAD
-	
-	parse(country_input, path_input, domain_input, ipaddress_input, http_status_input, referer_input, bird, db_path, minimum_field_count,output_for_collector_flag,bot_flag);
-	return EXIT_SUCCESS;
-=======
 
 	if (argc==1) {
 		/* There were no options given at all */
 		usage();
 		exit(EXIT_FAILURE);
 	} else {
-		parse(country_input, path_input, domain_input, ipaddress_input, http_status_input, referer_input, bird, db_path, minimum_field_count);
+		parse(country_input, path_input, domain_input, ipaddress_input, http_status_input, referer_input, bird, db_path, minimum_field_count,output_for_collector_flag,bot_flag);
 		return EXIT_SUCCESS;
 	}
->>>>>>> 4180422... Misc fixes
+	return 0;
 }

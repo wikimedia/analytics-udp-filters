@@ -16,11 +16,13 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
+#include <arpa/inet.h>
 #include "udp-filter.h"
 #include "anonymize.h"
 
 anon_ipv4_t *anon_ipv4 = NULL;   // The libanon anon_ipv4 object for ipv4 anonymization.
 anon_ipv6_t *anon_ipv6 = NULL;   // The libanon anon_ipv6 object for ipv6 anonymization.
+
 /**
  * Initializes global anon_ipv4 and anon_ipv6 objects.
  * If anon_key_salt is NULL, a random key salt will

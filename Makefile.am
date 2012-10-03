@@ -8,7 +8,9 @@ udp_filter_SOURCES = src/udp-filter.c       \
                      src/geo.h              \
                      src/geo.c              \
                      src/anonymize.h        \
-                     src/anonymize.c
+                     src/anonymize.c        \
+                     src/utils.h            \
+                     src/utils.c
 if DEBUG
 	AM_CFLAGS = -g3 -O0 -Wall -pedantic
 	AM_CXXFLAGS = -g3 -O0 -Wall -pedantic

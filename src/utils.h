@@ -15,16 +15,6 @@
     along with this program; if not, write to the Free Software
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
-#ifndef __ANONYMIZE_H
-#define __ANONYMIZE_H
 
 
-#include <stdio.h>
-#include <string.h>
-#include <stdlib.h>
-
-
-void init_anon_ip(uint8_t *anon_key_salt);
-char *anonymize_ip_address(char *ip);
-
-#endif
+void replace_space_with_underscore(char *string, int len);
