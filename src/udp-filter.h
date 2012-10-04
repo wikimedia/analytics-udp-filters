@@ -110,10 +110,6 @@ typedef struct{
 
 
 
-//PROTOTYPES
-int match_path(char *url, Filter *filters, int num_path_filters);
-
-int match_domain(char *url, Filter *filters, int num_domain_filters);
 
 regex_t * init_regex(char *token);
 

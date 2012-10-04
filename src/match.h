@@ -1,5 +1,3 @@
-#include <stdio.h>
-
 /*
     Copyright (C) 2012  <Diederik van Liere / Wikimedia Foundation>
 
@@ -18,35 +16,28 @@
     Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
+#ifndef __MATCH_H
+#define __MATCH_H
+#include "udp-filter.h"
+#include <stdlib.h>
+#include <stdio.h>
+#include <libcidr.h>
+#include <string.h>
 
-void replace_space_with_underscore(char *string, int len){
-        int i;
-        for (i=0;i<len; i++){
-                if(string[i]== ' ') {
-                        string[i] = '_';
-                }
-        }
-}
+int match_ip_address(char *ip_address, Filter *filters, int num_filters,int _verbose_flag);
+int match_path(char *url, Filter *filters, int num_path_filters,int _verbose_flag);
+int match_domain(char *url, Filter *filters, int num_domain_filters,int _verbose_flag);
+int match_http_status(char *http_status_field, Filter *filters, int num_http_status_filters,int _verbose_flag);
+
+extern const char comma_delimiter;
+extern const char ws_delimiter[] ;
+extern const char fs_delimiter   ;
+extern const char us_delimiter   ;
+
+extern SearchType  search ;
+extern RecodeType  recode ;
+extern IpMatchType ipmatch;
+#define MAX_ERROR_MSG 0x1000
 
 
-
-int determine_num_obs(char *raw_input, const char delimiter) {
-	/*
-	 * Determine the number of comma-separated filter parameters are entered
-	 * on the command line. This function is applied to both the path_input and
-	 * domain_input parameters.
-	 */
-	int size=0;
-	int j=0;
-	if (raw_input!=NULL){
-		while(raw_input[j] !='\0') {
-			if (raw_input[j] == delimiter) {
-				size++;
-			}
-			j++;
-		}
-		size++;// the number of obs. is the number of comma_delimiters plus 1
-	}
-	return size;
-}
-
+#endif

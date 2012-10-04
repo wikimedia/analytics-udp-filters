@@ -169,8 +169,6 @@ bool internal_traffic_fill_suffix_language(info *i) {
 
 
 bool match_internal_traffic_rules(char *url,char *ip,url_s *u,info *in) {
-  char  *host;
-  char  *dir;
 
   if (!url) {
     return false;

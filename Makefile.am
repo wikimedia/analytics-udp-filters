@@ -9,6 +9,8 @@ udp_filter_SOURCES = src/udp-filter.c       \
                      src/geo.c              \
                      src/anonymize.h        \
                      src/anonymize.c        \
+                     src/match.h            \
+                     src/match.c            \
                      src/utils.h            \
                      src/utils.c
 if DEBUG
