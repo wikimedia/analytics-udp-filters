@@ -124,6 +124,8 @@ void  init_anon_ip(uint8_t *anon_key_salt);
  */
 #define MAX_BUF_LENGTH 128
 
+char *extract_domain(char *url);
+char *extract_status(char *http_status_field);
 
 
 #endif
