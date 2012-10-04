@@ -1,0 +1,76 @@
+#!/usr/bin/env perl
+use strict;
+use warnings;
+use List::AllUtils qw/zip/;
+use Data::Dumper;
+#
+# This script is written in order to inspect and craft easily log files for testing purposes.
+# 
+#
+#
+# quote from udp-filter.c
+#
+# * 1. Hostname of the squid
+# * 2. Sequence number
+# * 3. The current time in ISO 8601 format (plus milliseconds), according to the squid server's clock.
+# * 4. Request service time in ms
+# * 5. Client IP
+# * 6. Squid request status, HTTP status code
+# * 7. Reply size including HTTP headers
+# * 8. Request method (GET/POST etc)
+# * 9. URL
+# * 10. Squid hierarchy status, peer IP
+# * 11. MIME content type
+# * 12. Referer header
+# * 13. X-Forwarded-For header
+# * 14. User-Agent header
+# * 15. Accept-Language header
+# * 16. x-wap-profile|Profile|wap-profile header(s)
+
+
+
+
+# order keys of a hash in this particular order, taking the number which is present at the beggining of the key
+# and ordering the keys depending on that number
+$Data::Dumper::Sortkeys = sub {  
+  my ($hash) = @_;
+  return [
+    sort { 
+      (my $a_) = $a =~ /^(\d+)/; 
+      (my $b_) = $b =~ /^(\d+)/; 
+      $a_ <=> $b_;
+    } ( keys %$hash)
+  ];
+};
+
+
+while(my $line=<STDIN>) {
+  chomp $line;
+  my @fields = split /\ /,$line;
+  my @field_names = qw/
+  1)squid_hostname
+  2)seq_number
+  3)current_time
+  4)request_service_time
+  5)client_ip
+  6)squid_request_status
+  7)reply_size
+  8)request_method
+  9)url
+  10)squid_hierarchy_status
+  11)mime_content_type
+  12)referer_header
+  13)x_forwarded_for_header
+  14)user_agent_header
+  15)accept_language_header
+  16)x_wap_profile_header
+  /;
+  @field_names = @field_names[0..(-1+@fields)]; #truncate to number of fields found
+  my $entry = {
+    zip(@field_names,@fields)
+  };
+  print Dumper $entry;
+};
+
+
+

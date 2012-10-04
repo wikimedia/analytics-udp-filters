@@ -54,6 +54,7 @@
 #include "geo.h"
 #include "anonymize.h"
 #include "match.h"
+#include "utils.h"
 
 #ifndef GeoIP_cleanup
 #define GeoIP_cleanup
@@ -965,7 +966,7 @@ void parse(char *country_input, char *path_input, char *domain_input, char *ipad
 		ipaddr        = fields[4];
 		http_status   = fields[5];
 		url           = fields[8];
-		referer       = fields[12];
+		referer       = fields[11];
                 ua            = fields[13];//necessary for bot detection
                 response_size = fields[6]; //response size
 

@@ -18,3 +18,5 @@
 
 
 void replace_space_with_underscore(char *string, int len);
+int determine_ai_family(char *ip, void *raw_address);
+int determine_num_obs(char *raw_input, const char delimiter);
