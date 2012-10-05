@@ -1,3 +1,4 @@
+udp-filters.tar
 data/
 Xcode/
 Debug/
@@ -10,8 +11,7 @@ package/
 package
 .settings
 .settings/
-.deps
-.deps/
+*.po
 geoip/
 geoip
 autom4te.cache/
