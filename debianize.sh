@@ -23,7 +23,7 @@ cd $PACKAGE-${MAIN_VERSION}
 VERSION=$VERSION perl -pi -e 's/VERSION=".*";/VERSION="$ENV{VERSION}";/' src/udp-filter.c
 
 mkdir m4
-dh_make -c gpl2 -e dvanliere@wikimedia.org -s --createorig -p $PACKAGE_${VERSION}
+dh_make -c gpl2 -e dvanliere@wikimedia.org -s --createorig -p $PACKAGE\_${VERSION}
 cd debian
 rm *ex *EX
 rm README.Debian dirs
@@ -53,12 +53,12 @@ else
 fi
 
 
-PACKAGE_NAME_VERSION=$PACKAGE_${VERSION}_$ARCH_SYS.deb
-PACKAGE_NAME_MAIN_VERSION=$PACKAGE_${MAIN_VERSION}_${ARCH_SYS}.deb
+PACKAGE_NAME_VERSION=$PACKAGE\_${VERSION}\_$ARCH_SYS.deb
+PACKAGE_NAME_MAIN_VERSION=$PACKAGE\_${MAIN_VERSION}\_${ARCH_SYS}.deb
 
 
 dpkg-deb --contents ${PACKAGE_NAME_MAIN_VERSION}
-
+echo "Currently in =>"`pwd`
 echo -e "Linting package ${PACKAGE_NAME_MAIN_VERSION} ...\n"
 lintian ${PACKAGE_NAME_MAIN_VERSION}
 mv ${PACKAGE_NAME_MAIN_VERSION} ${PACKAGE_NAME_VERSION}

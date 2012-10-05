@@ -22,10 +22,8 @@
 #define FPUTS fputs
 #endif
 
-#define VERSION_NUMBER 0.3.0 //Please keep incrementing this after each bug or new feature
-#define VERSION_STRING_HELPER(X) #X
-#define VERSION_STRING(X) VERSION_STRING_HELPER(X)
-
+// the version is set by the debianize script, don't worry about it
+char *VERSION="development-placeholder-version";
 
 #include <stdio.h>
 #include <stdbool.h>
@@ -1072,7 +1070,7 @@ void parse(char *country_input, char *path_input, char *domain_input, char *ipad
 
 
 void version() {
-	char *version = VERSION_STRING(VERSION_NUMBER);
+	char *version = VERSION;
 	printf("udp-filter %s\n", version);
 	printf("\n");
 	printf("Wikimedia's generic webserver access log filtering system.\n");
