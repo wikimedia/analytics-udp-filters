@@ -1,18 +1,13 @@
-This work was packaged for Debian by:
+This package was debianized by {Your Name} <your email address>
+{Date}
 
-    Diederik van Liere <dvanliere@wikimedia.org> on Wed, 01 Feb 2012 03:58:13 +0000
+It was downloaded from: {URL of webpage} 
 
-It was downloaded from:
-
-    <https://gerrit.wikimedia.org/r/gitweb?p=analytics/udp-filters.git>
-
-Upstream Author(s):
-
-    <Diederik van Liere (dvanliere@wikimedia.org)>
+Upstream Author(s): {Name(s) and email address(es) of author(s)}
 
 Copyright:
+        Copyright (C) {Year(s)} by {Author(s)} {Email address(es)}
 
-    <Copyright (C) 2012 Diederik van Liere / Wikimedia Foundation>
 
 License:
 
@@ -31,11 +26,6 @@ License:
 On Debian systems, the complete text of the GNU General
 Public License version 2 can be found in "/usr/share/common-licenses/GPL-2".
 
-The Debian packaging is:
-
-    Copyright (C) 2012 Diederik van Liere <dvanliere@wikimedia.org>
-
-you can redistribute it and/or modify
-it under the terms of the GNU General Public License as published by
-the Free Software Foundation; either version 2 of the License, or
-(at your option) any later version.
+Packaging:
+        Copyright (C) {Year(s)} by {Your Name} <your email address>
+        released under {the licence you choose for your packaging}

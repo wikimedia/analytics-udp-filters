@@ -1,3 +1,4 @@
-udp-filter was written by Diederik van Liere (dvanliere@wikimedia.org)
+Diederik van Liere (dvanliere@wikimedia.org)
+Andrew Otto (aotto@wikimedia.org)
+Stefan Petrea (stefan.petrea@gmail.com)
 
-Many thanks to Roan Kattouw and Tim Starling for showing me the way around in C.

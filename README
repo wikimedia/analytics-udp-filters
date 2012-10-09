@@ -125,3 +125,5 @@ This setting is not recommended in production.
 
 ./udp_filter -i 71.190.22.0/24,2607:f0d0:1002:51::/64          this will filter for logs with IP addresses that match the given CIDR ranges.  IPv4 and IPv6 CIDR blocks are supported.
 
+Acknowledgements
+Many thanks to Roan Kattouw and Tim Starling for showing me the way around in C.

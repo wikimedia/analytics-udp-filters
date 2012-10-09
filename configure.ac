@@ -6,7 +6,7 @@ AC_INIT([udp-filter],[0.2.2],[dvanliere@wikimedia.org])
 AC_CONFIG_SRCDIR([src/udp-filter.c])
 AC_CONFIG_HEADER([config.h])
 AM_INIT_AUTOMAKE
-
+AM_MAINTAINER_MODE([disable])
 AC_PROG_MAKE_SET
 
 AM_CONDITIONAL(DEBUG, test x"$debug" = x"true")

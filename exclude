@@ -33,3 +33,5 @@ config.log
 udp-filter
 a.out.dSYM/
 a.out.dSYM
+copyright-sample
+control-sample

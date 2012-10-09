@@ -1,3 +1,110 @@
+udp-filter (0.2.6ubuntu2) UNRELEASED; urgency=low
+
+  [ Andrew Otto ]
+  * Updating verison in manpage.
+  * Updating man page after running help2man
+
+  [ Diederik van Liere ]
+  * Small clarification in docs
+  * Add support for filtering based on referer.
+
+  [ Petrea Corneliu Stefan ]
+  * Transferred existing code from filter to udp-filters.
+  * Separated logic
+
+  [ Diederik van Liere ]
+  * Resolve merge conflict
+  * Cleaned up mess after failed merge attempt
+  * Updated bash tests, some are still failing
+
+  [ Petrea Corneliu Stefan ]
+  * Separating match functions from udp-filter
+  * Fixed warnings
+  * Fixed referer test
+  * Fixed all the test suite, all green
+
+  [ Diederik van Liere ]
+  * Added debianization script to create Debian package
+
+  [ Petrea Corneliu Stefan ]
+  * Adapted udpfilters for automatic versioning
+
+  [ Diederik van Liere ]
+  * Rename exclude.txt exclude
+  * Fixes and abstractions to the debianization script.
+
+ -- Diederik van Liere <dvanliere@wikimedia.org>  Fri, 05 Oct 2012 21:57:49 +0000
+
+udp-filter (0.2.6ubuntu1) lucid; urgency=low
+
+  [ Andrew Otto ]
+  * Updating verison in manpage.
+  * Updating man page after running help2man
+
+  [ Diederik van Liere ]
+  * Small clarification in docs
+  * Add support for filtering based on referer.
+
+  [ Petrea Corneliu Stefan ]
+  * Transferred existing code from filter to udp-filters.
+  * Separated logic
+
+  [ Diederik van Liere ]
+  * Resolve merge conflict
+  * Cleaned up mess after failed merge attempt
+  * Updated bash tests, some are still failing
+
+  [ Petrea Corneliu Stefan ]
+  * Separating match functions from udp-filter
+  * Fixed warnings
+  * Fixed referer test
+  * Fixed all the test suite, all green
+
+  [ Diederik van Liere ]
+  * Added debianization script to create Debian package
+
+  [ Petrea Corneliu Stefan ]
+  * Adapted udpfilters for automatic versioning
+
+  [ Diederik van Liere ]
+  * Rename exclude.txt exclude
+  * Fixes and abstractions to the debianization script.
+
+  [ Andrew Otto ]
+  * Updating verison in manpage.
+  * Updating man page after running help2man
+
+  [ Diederik van Liere ]
+  * Small clarification in docs
+  * Add support for filtering based on referer.
+
+  [ Petrea Corneliu Stefan ]
+  * Transferred existing code from filter to udp-filters.
+  * Separated logic
+
+  [ Diederik van Liere ]
+  * Resolve merge conflict
+  * Cleaned up mess after failed merge attempt
+  * Updated bash tests, some are still failing
+
+  [ Petrea Corneliu Stefan ]
+  * Separating match functions from udp-filter
+  * Fixed warnings
+  * Fixed referer test
+  * Fixed all the test suite, all green
+
+  [ Diederik van Liere ]
+  * Added debianization script to create Debian package
+
+  [ Petrea Corneliu Stefan ]
+  * Adapted udpfilters for automatic versioning
+
+  [ Diederik van Liere ]
+  * Rename exclude.txt exclude
+  * Fixes and abstractions to the debianization script.
+
+ -- Diederik <diederik@i-000002b3.pmtpa.wmflabs>  Fri, 05 Oct 2012 21:55:19 +0000
+
 udp-filter (0.2.6) stable; urgency=low
 
   * Using libanon for IP address anonymization.
