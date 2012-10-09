@@ -7,6 +7,20 @@ fi
 if [ -z "$DEBEMAIL" ]
 	then export DEBEMAILADDRESS="dvanliere@wikimedia.org"
 fi
+
+
+if [ `whoami` != 'root' ]; then
+  echo "Executing debianize.sh script"
+else
+  echo "Error: Executing debianize.sh as root not recommended"
+  exit 1
+fi
+
+
+
+
+
+
 LICENSE=gpl2
 FIRST_COMMIT_DATE=`git log --pretty=format:"%H %ad" | perl -ne '/(\d+) ([+-]?\d+)$/ && print "$1\n"' | sort | uniq | tail -1`
 FINAL_COMMIT_DATE=`git log --pretty=format:"%H %ad" | perl -ne '/(\d+) ([+-]?\d+)$/ && print "$1\n"' | sort | uniq | head -1`
