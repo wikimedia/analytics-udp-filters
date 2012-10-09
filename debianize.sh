@@ -5,7 +5,7 @@ if [ -z "$DEBFULLNAME" ]
 fi
 
 if [ -z "$DEBEMAIL" ]
-	then export DEBEMAILADDRESS="dvanliere@wikimedia.org"
+	then export DEBEMAIL="dvanliere@wikimedia.org"
 fi
 LICENSE=gpl2
 FIRST_COMMIT_DATE=`git log --pretty=format:"%H %ad" | perl -ne '/(\d+) ([+-]?\d+)$/ && print "$1\n"' | sort | uniq | tail -1`
@@ -25,7 +25,7 @@ rm -rf $PACKAGE-${VERSION}
 mkdir $PACKAGE-${VERSION}
 tar -C $PACKAGE-${VERSION} -xvf $PACKAGE.tar
 
-rm ${PACKAGE}_${VERSION}.orig.tar.gz
+rm ${PACKAGE}\_${VERSION}.orig.tar.gz
 
 cd $PACKAGE-${VERSION}
 
@@ -33,7 +33,7 @@ VERSION=$VERSION perl -pi -e 's/VERSION=".*";/VERSION="$ENV{VERSION}";/' src/udp
 VERSION=$VERSION perl -pi -e 's/VERSION=".*";/VERSION="$ENV{VERSION}";/' configure.ac
 
 mkdir m4
-dh_make -c $LICENSE -e $DEBEMAILS -s --createorig -p $PACKAGE\_${VERSION}
+dh_make -c ${LICENSE} -e ${DEBEMAIL} -s --createorig -p $PACKAGE\_${VERSION}
 cd debian
 rm *ex *EX
 rm README.Debian dirs
