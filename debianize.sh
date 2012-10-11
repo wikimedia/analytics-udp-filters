@@ -36,7 +36,7 @@ tar -cvf $PACKAGE.tar --exclude-from=exclude .
 mv $PACKAGE.tar ../
 cd ..
 rm -rf $PACKAGE-${VERSION}
-mkdir $PACKAGE-${VERSION}
+mkdir  $PACKAGE-${VERSION}
 tar -C $PACKAGE-${VERSION} -xvf $PACKAGE.tar
 
 rm ${PACKAGE}\_${VERSION}.orig.tar.gz
@@ -47,7 +47,20 @@ VERSION=$VERSION perl -pi -e 's/VERSION=".*";/VERSION="$ENV{VERSION}";/' src/udp
 VERSION=$VERSION perl -pi -e 's/VERSION=".*";/VERSION="$ENV{VERSION}";/' configure.ac
 
 mkdir m4
-dh_make -c ${LICENSE} -e ${DEBEMAIL} -s --createorig -p $PACKAGE\_${VERSION}
+DH_MAKE_PKG_NAME=$PACKAGE\_${VERSION}
+
+
+
+#if [ ! -e "$DH_MAKE_PKG_NAME" ]; then
+  #echo "Error: archive $DH_MAKE_PKG_NAME doesn't exist"
+  #exit 2
+#else
+echo "dh_make -c ${LICENSE} -e ${DEBEMAIL} -s --createorig -p $DH_MAKE_PKG_NAME"
+#fi
+
+
+dh_make -c ${LICENSE} -e ${DEBEMAIL} -s --createorig -p ${DH_MAKE_PKG_NAME}
+
 cd debian
 rm *ex *EX
 rm README.Debian dirs
@@ -58,7 +71,7 @@ rm README.Debian dirs
 #cp ../$PACKAGE/Makefile debian/.
 #cd ../$PACKAGE_${VERSION} &&
 cd ..
-dpkg-buildpackage -v${VERSION}
+dpkg-buildpackage -b #-v${VERSION}
 cd ..
 
 

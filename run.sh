@@ -2,30 +2,32 @@
 #./configure CPPFLAGS=-DDEBUG CFLAGS="-g3 -O0 -Wall -pendantic"
 make clean
 make DEBUG=1
-ip_filter1=$(cat example.log | ./udp-filter -i 216.38.130.161 | wc -l)
-ip_filter2=$(cat example.log | ./udp-filter -i 0.0.0.0/0 | wc -l)
-ip_filter3=$(cat example.log | ./udp-filter -i 216.38.130.161,0.0.0.0 | wc -l)
-ip_filter4=$(cat example.log | ./udp-filter -i 127.0.0.1/14,216.0.0.0/4 | wc -l)
+
+UDP_FILTER="./udp-filter -t"
+ip_filter1=$(cat example.log | $UDP_FILTER -i 216.38.130.161 | wc -l)
+ip_filter2=$(cat example.log | $UDP_FILTER -i 0.0.0.0/0 | wc -l)
+ip_filter3=$(cat example.log | $UDP_FILTER -i 216.38.130.161,0.0.0.0 | wc -l)
+ip_filter4=$(cat example.log | $UDP_FILTER -i 127.0.0.1/14,216.0.0.0/4 | wc -l)
 
 
-domain_filter1=$(cat example.log | ./udp-filter -d waka | wc -l)
-domain_filter2=$(cat example.log | ./udp-filter -d wiki -g -c US -b country | wc -l)
-domain_filter3=$(cat example.log | ./udp-filter -d "(wiki)" -r | wc -l)
+domain_filter1=$(cat example.log | $UDP_FILTER -d waka | wc -l)
+domain_filter2=$(cat example.log | $UDP_FILTER -d wiki -g -c US -b country | wc -l)
+domain_filter3=$(cat example.log | $UDP_FILTER -d "(wiki)" -r | wc -l)
 
-anonymize_filter1=$(cat example.log | ./udp-filter -a | wc -l)
+anonymize_filter1=$(cat example.log | $UDP_FILTER -a | wc -l)
 
-geo_filter1=$(cat example.log | ./udp-filter -g -b country | wc -l)
-geo_filter2=$(cat example.log | ./udp-filter -d wiki -g -c US,FR -b country | wc -l)
+geo_filter1=$(cat example.log | $UDP_FILTER -g -b country | wc -l)
+geo_filter2=$(cat example.log | $UDP_FILTER -d wiki -g -c US,FR -b country | wc -l)
 
-path_filter1=$(cat example.log | ./udp-filter -p Manual | wc -l)
+path_filter1=$(cat example.log | $UDP_FILTER -p Manual | wc -l)
 
-status_filter1=$(cat example.log | ./udp-filter -s 504 | wc -l)
-status_filter2=$(cat example.log | ./udp-filter -s 50 | wc -l)
-status_filter3=$(cat example.log | ./udp-filter -s 400,200 | wc -l)
+status_filter1=$(cat example.log | $UDP_FILTER -s 504 | wc -l)
+status_filter2=$(cat example.log | $UDP_FILTER -s 50 | wc -l)
+status_filter3=$(cat example.log | $UDP_FILTER -s 400,200 | wc -l)
 
-referer_filter1=$(cat example.log| ./udp-filter -f www.mediawiki.org | wc -l)
+referer_filter1=$(cat example.log| $UDP_FILTER -f www.mediawiki.org | wc -l)
 
-collector_output1=$(cat example.collector.log | ./udp-filter -o -B | diff example.collector.expected_result -)
+collector_output1=$(cat example.collector.log | $UDP_FILTER -o -B | diff example.collector.expected_result -)
 red="\033[31m"
 green="\033[32m"
 black="\033[30m"

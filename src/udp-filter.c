@@ -722,7 +722,18 @@ void free_memory(Filter *filters, char *path_input, char *domain_input, int num_
 	}
 }
 
-void parse(char *country_input, char *path_input, char *domain_input, char *ipaddress_input, char *http_status_input, char *referer_input, char *bird, char *db_path, int minimum_field_count,int output_for_collector_flag,int bot_flag) {
+void parse(char *country_input,
+           char *path_input,
+           char *domain_input,
+           char *ipaddress_input,
+           char *http_status_input,
+           char *referer_input,
+           char *bird,
+           char *db_path,
+           int minimum_field_count,
+           int output_for_collector_flag,
+           int bot_flag,
+           int internal_traffic_rules_flag) {
 	// GENERIC VARIABLES
 	char *fields[maximum_field_count];	// the number of fields we expect in a single line
 	int num_filters = 0;				// the total number of filters we detect from the command line
@@ -974,18 +985,23 @@ void parse(char *country_input, char *path_input, char *domain_input, char *ipad
 
                 url_s internal_traffic_url_s; // url broken down into pieces
                 info  internal_traffic_info;
+                char url_dup[7000];
+
                 bzero(&internal_traffic_url_s ,sizeof(internal_traffic_url_s));
                 bzero(&internal_traffic_info  ,sizeof(internal_traffic_info ));
                 internal_traffic_info.size = response_size;
-                char url_dup[7000];
-                strcpy(url_dup,url);
-                if(!match_internal_traffic_rules(url_dup,ipaddr,&internal_traffic_url_s,&internal_traffic_info)) {
-                  continue;
-                }
 
-                if(!internal_traffic_fill_suffix_language(&internal_traffic_info)) {
-                  continue;
-                }
+
+                if(internal_traffic_rules_flag) {
+                  strcpy(url_dup,url);
+                  if(!match_internal_traffic_rules(url_dup,ipaddr,&internal_traffic_url_s,&internal_traffic_info)) {
+                    continue;
+                  };
+
+                  if(!internal_traffic_fill_suffix_language(&internal_traffic_info)) {
+                    continue;
+                  };
+                };
 
                 /***************************************************************/
 
@@ -1132,6 +1148,8 @@ void usage() {
         printf("\n");
         printf("  -B, --bot-detect                       Bot detection will occur and project names will be labelled accordingly\n");
         printf("\n");
+        printf("  -t, --internal-traffic                 Activate internal traffic rules\n");
+        printf("\n");
 	printf("  -v, --verbose                          Output detailed debug information to stderr, not recommended\n");
 	printf("                                         in production.\n");
 	printf("  -h, --help                             Show this help message.\n");
@@ -1150,7 +1168,7 @@ int main(int argc, char **argv){
 	int geo_param_supplied = -1;
         int output_for_collector_flag = 0; // this flag indicates if the output will be tailored for collector
         int bot_flag = 0; // this flag indicates if bot detection will occur
-
+        int internal_traffic_rules_flag = 0;
 	// Expected minimum number of fields in a line.
 	// There  can be no fewer than this, but no more than
 	// maximum_field_count space separated fields in a long line.
@@ -1175,6 +1193,7 @@ int main(int argc, char **argv){
 			{"version"          , no_argument       , NULL , 'V'} ,
 			{"bot-detect"       , no_argument       , NULL , 'B'} ,
 			{"output-collector" , no_argument       , NULL , 'o'} ,
+			{"internal-traffic" , no_argument       , NULL , 't'} ,
 			{0                  , 0                 , 0    , 0 }
 	};
 
@@ -1182,7 +1201,7 @@ int main(int argc, char **argv){
 
 	int c;
 
-	while((c = getopt_long(argc, argv, "a::b:c:d:f:m:n:s:ghi:rp:vVoB", long_options, NULL)) != -1) {
+	while((c = getopt_long(argc, argv, "a::b:c:d:f:m:n:s:ghi:rp:vVoBt", long_options, NULL)) != -1) {
 		// b,c,d,f,i,m,n,s,p have mandatory arguments
 		switch(c)
 		{
@@ -1302,6 +1321,9 @@ int main(int argc, char **argv){
                 case 'B':
                         bot_flag = 1;
                         break;
+                case 't':
+                        internal_traffic_rules_flag = 1;
+                        break;
 		default:
 			exit(EXIT_FAILURE);
 		}
@@ -1326,7 +1348,18 @@ int main(int argc, char **argv){
 		usage();
 		exit(EXIT_FAILURE);
 	} else {
-		parse(country_input, path_input, domain_input, ipaddress_input, http_status_input, referer_input, bird, db_path, minimum_field_count,output_for_collector_flag,bot_flag);
+		parse(country_input              ,
+                      path_input                 ,
+                      domain_input               ,
+                      ipaddress_input            ,
+                      http_status_input          ,
+                      referer_input              ,
+                      bird                       ,
+                      db_path                    ,
+                      minimum_field_count        ,
+                      output_for_collector_flag  ,
+                      bot_flag                   ,
+                      internal_traffic_rules_flag);
 		return EXIT_SUCCESS;
 	}
 	return 0;
