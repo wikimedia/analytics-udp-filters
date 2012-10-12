@@ -18,8 +18,15 @@ fi
 
 
 
+# TODO: check if the project uses automake/autoconf and if so then run the following commnds
+# in order to clean stuff up
 
-
+make clean;
+rm -f Makefile configure;
+aclocal;
+autoreconf;
+autoconf;
+automake;
 
 LICENSE=gpl2
 FIRST_COMMIT_DATE=`git log --pretty=format:"%H %ad" | perl -ne '/(\d+) ([+-]?\d+)$/ && print "$1\n"' | sort | uniq | tail -1`
