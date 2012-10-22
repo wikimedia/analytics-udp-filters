@@ -515,7 +515,7 @@ int determine_ai_family(char *ip, void *raw_address) {
 
 
 
-void replace_ip_addr(char *fields[], char* area, int should_anonymize_ip) {
+void replace_ip_addr(char *fields[], char* area, int should_anonymize_ip,int *field_count_this_line) {
 	/*
 	 * The purpose of this function is to replace the original ip address from
 	 * line (where line is the original input as read from STDIN with
@@ -527,6 +527,9 @@ void replace_ip_addr(char *fields[], char* area, int should_anonymize_ip) {
 	 * If should_anonymize_ip is true, the IP address will be replaced with anonoymous_ip.
 	 *
 	 * fields is by reference, so fields[4] will be replaced with the resulting string.
+         * 
+         * if the geoip is enabled
+         * we have already increased the value of field_count_this_line in order to expand for the additional geoip field
 	 */
 
 	if (should_anonymize_ip) {
@@ -537,9 +540,17 @@ void replace_ip_addr(char *fields[], char* area, int should_anonymize_ip) {
 	{
 		// temporary variable in which to store new field with geocode string.
 		static char new_field[MAX_BUF_LENGTH];
-		snprintf(new_field, MAX_BUF_LENGTH, "%s|%s", fields[4], area);
-		// set fields[4] to the new string.
-		fields[4] = new_field;
+
+
+                /* 
+                 * the data came through a pipe
+                 * that means that the field now on  (*field_count_this_line)-2
+                 * because that was the last field ( however now -1 is the last field since we added the geoip field )
+                 * has a "\n" appended to it. we'll remove that and place it on (*field_count_this_line)-1
+                 */
+                int len_last_old_field = strlen(fields[(*field_count_this_line)-2]);
+                fields[(*field_count_this_line)-2][len_last_old_field-2]='\0';
+                snprintf(fields[(*field_count_this_line)-1],MAX_BUF_LENGTH,"%s\n",area);
 	}
 }
 
@@ -938,6 +949,7 @@ void parse(char *country_input,
 	}
 
 
+
 	// Now that we have initilaized all the filters,
 	// do the actual filtering and conversion of the
 	// incoming data.
@@ -968,6 +980,19 @@ void parse(char *country_input,
 			continue;
 		}
 
+
+                /*
+                 * If we are also doing geoip then we make sure to make room for one more
+                 * field and provide some memory to be used to store it(the field_geoip)
+                 *
+                 */
+                char field_geoip[MAX_BUF_LENGTH];
+                if(recode & GEO) {
+                  // make room
+                  i++;
+                  // indicate where it will be written
+                  fields[i-1] = field_geoip;
+                };
 
 		// we found i fields in this line.
 		field_count_this_line = i;
@@ -1058,7 +1083,7 @@ void parse(char *country_input,
 				// if area is not null, it will be appended
 				// to the ip address.  If (recode & ANONYMIZE) is
 				// true, then the IP will be replaced.
-				replace_ip_addr(fields, area, (recode & ANONYMIZE));
+				replace_ip_addr(fields, area, (recode & ANONYMIZE),&field_count_this_line);
 			};
 
 
