@@ -128,7 +128,7 @@ char *anonymize_ip_address(char *ip) {
 				if (!inet_ntop(AF_INET, &raw4_anon_address, anonymized_ip, INET_ADDRSTRLEN)) {
 					perror("anonymize_ip_address: inet_ntop could not convert raw anonymized IPv4 address to a string");
 					anonymized_ip = anonymous_ip;
-				}
+                                };
 			}
 			break;
 
@@ -148,7 +148,7 @@ char *anonymize_ip_address(char *ip) {
 				if (!inet_ntop(AF_INET6, &raw6_anon_address, anonymized_ip, INET6_ADDRSTRLEN)) {
 					perror("anonymize_ip_address: inet_ntop could not convert raw anonymized IPv6 address to a string");
 					anonymized_ip = anonymous_ip;
-				}
+                                };
 			}
 			break;
 
