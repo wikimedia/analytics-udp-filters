@@ -520,31 +520,42 @@ int determine_ai_family(char *ip, void *raw_address) {
 	*
 	*	The return value of this function is the index of the new field inside the fields[] array
 	*
+	*     Warning: Use with caution. Make sure that new_field_data has 2 extra bytes for the \n and \0 that will be added.
+	*     Otherwise you may write memory that is not allocated and cause problems.
+	*
 	*/
 
 int append_field(char *fields[],char *new_field_data,int *field_count_this_line) {
-	// shorter alias for field_count_this_line
-	int *i = field_count_this_line;
-	// increase the field count
-	(*i)++;
+	// last field index before adding new field
+	int last_field_index = *field_count_this_line-1;
+	int new_field_index  = *field_count_this_line;
+	if(new_field_index > maximum_field_count ) {
+		fprintf(stderr,"Error: Tried to append too many fields\n");
+		return -1;
+	};
+
 	// tell fields[] where the memory for this new field is
-	fields[*i-1] = new_field_data;
+	fields[new_field_index] = new_field_data;
 	// take length of previously last field
-	int len = strlen(fields[*i-2]);
+	int len = strlen(fields[last_field_index]);
 	//check if we have at least 2 characters in it
-	if( len-2 >= 0) {
+	if( len >= 2) {
 		// check to see if the field is line-ended
 		// and if it is, remove the line-ending
-		if( fields[*i-2][len-1] == 0x0a ) {
-				fields[*i-2][len-1] =	0x00;
+		if( fields[last_field_index][len-1] == '\n' ) {
+			fields[last_field_index][len-1] = '\0';
 		};
 	};
 
+	// increase the field count
+	(*field_count_this_line)++;
+
 	// we append \n  to the field we just added.
-	snprintf(new_field_data,MAX_BUF_LENGTH,"%s\n",new_field_data);
+	new_field_data[strlen(new_field_data)  ] = '\n';
+	new_field_data[strlen(new_field_data)+1] = '\0';
 
 	// at this point a new field is now ready at field[*i-1]
-	return *i-1;
+	return *field_count_this_line-1;
 }
 
 
@@ -636,6 +647,7 @@ void parse(char *country_input,
 	char *http_status;
 	char *referer;
 	char *response_size; //response size
+	char *x_forwarded_for;
 
 
 
@@ -860,16 +872,90 @@ void parse(char *country_input,
 		int field_geoip_index = 0;
 
 
-		ipaddr				= fields[4];
-		http_status	 = fields[5];
-		url					 = fields[8];
-		referer			 = fields[11];
-		ua						= fields[13];//necessary for bot detection
-			response_size = fields[6]; //response size
+		ipaddr             = fields[4];
+		http_status        = fields[5];
+		url                = fields[8];
+		referer            = fields[11];
+		ua                 = fields[13];//necessary for bot detection
+		response_size      = fields[6]; //response size
+		x_forwarded_for    = fields[12];
 
+
+		// 40 because that's the maximum size of a ipv6/ipv4 ip address
+		char		 x_forwarded_client[40];
+
+		// using x_forwarded field for geoip
+		bool using_xforwarded_for_geoip = false;
+
+			
+		/* 
+		 * at the end of this if statement
+		 * using_xforwarded_for_geoip will indicate if we have a valid ipv4/ipv6 ip
+		 * to use for geoip and the needed ip will be stored inside
+		 * x_forwarded_client 
+     *
+		 * sanity checks: 
+		 *
+		 * 1) the x_forwarded_client must be of length at least 7
+		 * in order to express a valid ipv4 ip (and more in order to express ipv6)
+		 * 2) if we get something with "http" that means we're already in a different field and the x-forwarded-for
+		 * field was ommited
+		 * 3) the ips which are local are geolocated to XX country code by the geoip library
+		 *
+		 *  
+		 */
+		if(
+			 strlen(x_forwarded_for) >= 7			&&
+			 strncmp(x_forwarded_for,"http" ,4) != 0	&&
+			 strncmp(x_forwarded_for,"-" ,1)	!= 0
+			) {
+			char *ix = x_forwarded_for;
+			bool found_multiple_ips = false;
+			bool found_illegal_char = false;
+
+			// length of the first ip in x-forwarded-for header
+			int len = 0;
+			for(;*ix != '\0';ix++) {
+				// we just take what we need which is everything up until the comma
+				if(	(*ix >= 'a' && *ix <= 'f' )	||
+					(*ix >= '0' && *ix <= '9' )	||
+						*ix == '.'			||
+						*ix == ':'			||
+						*ix == ','			||
+						*ix == '%'
+					) {
+					} else {
+						found_illegal_char = true;
+						using_xforwarded_for_geoip  = false;
+						break;
+					};
+				if(*ix == ',') {
+					found_multiple_ips = true;
+					len = ix - x_forwarded_for;
+					strncpy(x_forwarded_client,x_forwarded_for, len);
+					x_forwarded_client[len] = 0;
+					break;
+				};
+			};
+
+			len = ix - x_forwarded_for ;
+			// the smallest ipv4 address is  0.0.0.0 (7 chars)
+			// the biggest  ipv6 address is  xxxx:yyyy:zzzz:mmmm:pppp:qqqq:rrrr:ssss (39 chars)
+			if( len >= 7  && len <= 39 && !found_illegal_char ) {
+				using_xforwarded_for_geoip = true;
+				strncpy(x_forwarded_client,x_forwarded_for, len);
+				x_forwarded_client[len] = 0;
+			};
+
+		} else {
+			using_xforwarded_for_geoip = false;
+		};
+
+		
+ 
 		/**
 			* Collector output and internal traffic filters here
-*/
+		*/
 
 		url_s internal_traffic_url_s; // url broken down into pieces
 		info	internal_traffic_info;
@@ -917,7 +1003,11 @@ void parse(char *country_input,
 			}
 
 			if (params[GEO_FILTER] == 1){
-				area = geo_lookup(gi, ipaddr, bird_int);
+				if(using_xforwarded_for_geoip) {
+					area = geo_lookup(gi, x_forwarded_client, bird_int);
+				} else {
+					area = geo_lookup(gi, ipaddr, bird_int);
+				};
 				found += geo_check(area, countries, num_countries_filters,verbose_flag);
 				if (verbose_flag){
 					fprintf(stderr, "IP address: %s was geocoded as: %s\n", ipaddr, area);
@@ -926,7 +1016,9 @@ void parse(char *country_input,
 					field_geoip_index = append_field(fields,area,&field_count_this_line);
 				};
 			}
-		}
+		};
+
+
 
 		// required_hits will equal the number of filters
 		// given.	These include ip, domain, path, status,
@@ -942,7 +1034,11 @@ void parse(char *country_input,
 				// we'll be needing the geocoded string when
 				// replacing the IP.
 				if (area == NULL && (recode & GEO)) {
-					area = geo_lookup(gi, ipaddr, bird_int);
+					if(using_xforwarded_for_geoip) {
+						area = geo_lookup(gi, x_forwarded_client, bird_int);
+					} else {
+						area = geo_lookup(gi, ipaddr, bird_int);
+					};
 					if(area) {
 						field_geoip_index = append_field(fields,area,&field_count_this_line);
 					};
@@ -957,7 +1053,6 @@ void parse(char *country_input,
 				if (should_anonymize_ip) {
 					fields[4] = anonymize_ip_address(fields[4]);
 				}
-
 
 
 			};

@@ -16,8 +16,11 @@ domain_filter3=$(cat example.log | $UDP_FILTER -d "(wiki)" -r | wc -l)
 
 anonymize_filter1=$(cat example.log | $UDP_FILTER -arandom | wc -l)
 
+
+
+
 # Do anonymization on a small data set, make sure the ips are different
-# from the original ones
+# from the original ones (the actual definition of anonymization)
 anonymize_filter2_id=`date +%s`
 anonymize2_input=/tmp/anonymize_input_$anonymize_filter2_id
 anonymize2_output=/tmp/anonymize_output_$anonymize_filter2_id
@@ -26,14 +29,25 @@ cat example.log | ./udp-filter -arandom | cut -d' ' -f5 > $anonymize2_output
 # get difference between ip field before and after anonymization and because
 # diff it outputting the number of lines doubled, we just divide it by two
 # and get the number of differences
-anonymize2_filter2=$(diff -U 0 $anonymize2_input $anonymize2_output | \
+anonymize_filter2=$(diff -U 0 $anonymize2_input $anonymize2_output | \
                      grep -v "^\(---\|\+++\)" | \
                      grep "^[-+]" | \
                      wc -l | perl -ne '$_ >>= 1; print $_')
+# cleanup
 rm -f $anonymize2_input $anonymize2_output
+
+
+
+
+
+
 
 geo_filter1=$(cat example.log | $UDP_FILTER -g -b country | wc -l)
 geo_filter2=$(cat example.log | $UDP_FILTER -d wiki -g -c US,FR -b country | wc -l)
+
+# there's one single log line in example.xforwardfor.log and the ip is resolved to U.S. but the
+# X-Forwarded-For header says it's from Japan and we check to see if that is correctly resolved
+geo_filter3=$(cat example.xforwardfor.log | $UDP_FILTER -g -b country | grep " JP$\| US$" | wc -l)
 
 path_filter1=$(cat example.log | $UDP_FILTER -p Manual | wc -l)
 
@@ -120,7 +134,7 @@ else
 fi
 
 
-if [ $anonymize2_filter2 -eq 10 ]; then
+if [ $anonymize_filter2 -eq 10 ]; then
         cecho "Pass" $green
 else
         cecho "Fail" $red
@@ -139,6 +153,11 @@ else
         cecho "Fail" $red
 fi
 
+if [ $geo_filter3 -eq 2 ]; then
+        cecho "Pass" $green
+else
+        cecho "Fail" $red
+fi
 
 if [ $path_filter1 -eq 0 ]; then
         cecho "Pass" $green
