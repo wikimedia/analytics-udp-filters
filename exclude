@@ -21,6 +21,9 @@ autom4te.cache
 .DS_Store
 .gitreview
 .project
+changelog_backup
+changelog_backup/
+changelog_backup/*
 debian/
 debian
 debian.tar
