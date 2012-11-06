@@ -1,0 +1,4 @@
+usr/bin/udp-filter
+usr/share/doc/udp-filters/*
+usr/share/man/man1/udp-filter.1.gz
+usr/share/man/man1/udp-filter.1

@@ -1,3 +1,7 @@
+CFLAGS=
+AM_CPPFLAGS=
+AM_CFLAGS=$(AM_CXXFLAGS)
+
 bin_PROGRAMS = udp-filter
 udp_filter_SOURCES = src/udp-filter.c       \
                      src/udp-filter.h       \
@@ -13,13 +17,8 @@ udp_filter_SOURCES = src/udp-filter.c       \
                      src/match.c            \
                      src/utils.h            \
                      src/utils.c
-if DEBUG
-	AM_CFLAGS = -g3 -O0 -Wall -pedantic
-	AM_CXXFLAGS = -g3 -O0 -Wall -pedantic
-else
-	AM_CLFAGS = -O3
-	AM_CXXFLAGS = -O3
-endif
+
+
 
 AM_CPPFLAGS = $(GEOIP_CFLAGS)
 udp_filter_LDADD = $(GEOIP_LIBS) $(DEPS_LIBS) -lGeoIP -lcidr -lanon

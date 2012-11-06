@@ -1,7 +1,8 @@
-make clean
+#!/bin/bash
+autoreconf
 aclocal
 autoconf
-autoreconf
+automake
 
-./configure CPPFLAGS=-DDEBUG CFLAGS="-g3 -O0 -Wall -pedantic"  $@
+./configure  $@
 

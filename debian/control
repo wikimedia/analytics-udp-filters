@@ -1,4 +1,4 @@
-Source: udp-filter
+Source: udp-filters
 Section: utils
 Priority: extra
 Maintainer: Diederik van Liere <dvanliere@wikimedia.org>
@@ -8,10 +8,12 @@ Vcs-Git: git://gerrit.wikimedia.org:29416/analytics/udp-filters.git
 Vcs-Browser: https://gerrit.wikimedia.org/r/gitweb?p=analytics/udp-filters.git
 Homepage: http://www.mediawiki.org/wiki/Analytics/UDP-filters
 
-Package: udp-filter
+Package: udp-filters
 Architecture: any
 Depends: ${shlibs:Depends}, ${misc:Depends}, libcidr0, libgeoip1, libanon0
-Description: Parses webserver access log lines and filters and transforms them.
- Wikimedia has a udp logger that sends packets from the webservers containing access logs.
- udp-filter allows you to configure a filter and write particular pageviews, based on a
- combination of domain and url matching, to a logfile. It also offers geocoding and anonymization of ip addresses.
+Description: Parses webserver access log lines and filters.
+ Wikimedia has a udp logger that sends packets from the webservers 
+ containing access logs. udp-filter allows you to configure a filter 
+ and write particular pageviews, based on a combination of domain and 
+ url matching, to a logfile. It also offers geocoding and anonymization 
+ of ip addresses.

@@ -1,1 +1,215 @@
-../ChangeLog
+udp-filters (0.3.19) maverick; urgency=low
+
+  [ Petrea Corneliu Stefan  ]
+  * Created new 0.3.19 version from tag 0.3.19
+
+  [ Diederik van Liere  ]
+  * Cleaned up mess after failed merge attempt
+  * Updated bash tests, some are still failing
+
+  [ Petrea Corneliu Stefan  ]
+  * Separating match functions from udp filter
+  * Fixed warnings
+  * Fixed referer test
+  * Fixed all the test suite, all green
+
+  [ Diederik van Liere  ]
+  * Added debianization script to create Debian package
+
+  [ Petrea Corneliu Stefan  ]
+  * Adapted udpfilters for automatic versioning
+
+  [ Diederik van Liere  ]
+  * Rename exclude.txt exclude
+  * Fixes and abstractions to the debianization script.
+  * More improvements to debianization process
+
+  [ Petrea Corneliu Stefan  ]
+  * Added root check to debianize.sh
+
+  [ Diederik van Liere  ]
+  * Fix export email address variable
+  * Merge branch 'master' of
+    ssh://gerrit.wikimedia.org:29418/analytics/udp filters
+
+  [ Petrea Corneliu Stefan  ]
+  * Added internal traffic option
+  * Added more cleanup to debianization.sh
+  * Making geoip field last
+  * Fixed anonymize
+  * X forwarded For field taken into consideration for geoip
+
+  [ Diederik van Liere ]
+  * Tag created for version 0.3.19
+
+ -- Diederik van Liere <dvanliere@wikimedia.org>  Fri, 2 Nov 2012 18:52:28 +0200
+
+udp-filters (0.3) maverick; urgency=low
+
+  [ Petrea Corneliu Stefan  ]
+  * Created new 0.3 version from tag 0.3
+
+  [ Andrew Otto  ]
+  * Updating verison in manpage.
+  * Updating man page after running help2man
+
+  [ Diederik van Liere  ]
+  * Small clarification in docs
+  * Add support for filtering based on referer.
+
+  [ Petrea Corneliu Stefan  ]
+  * Transferred existing code from filter to udp filters.
+  * Separated logic
+
+  [ Diederik van Liere  ]
+  * Resolve merge conflict
+
+  [ Diederik van Liere ]
+  * Tag created for version 0.3
+
+ -- Diederik van Liere <dvanliere@wikimedia.org>  Fri, 5 Oct 2012 16:27:29 +0300
+
+udp-filters (0.2.6) maverick; urgency=low
+
+  [ Petrea Corneliu Stefan  ]
+  * Created new 0.2.6 version from tag 0.2.6
+
+  [ Andrew Otto  ]
+  * Modifications for including geocoded string in same field as IP
+    address.
+  * udp filter.c   making tab the field delimiter, changing default
+    GeoIP data file locations.
+  * Putting delimiter back at space for now.
+  * Adding ability to filter by http response status.
+  * Updating run.sh with more tests.  Adding example.log
+
+  [ Diederik  ]
+  * Updating build script make deb packager happy, fixes some Changelog
+    issues
+  * Updated packaging stuff
+
+  [ Andrew Otto  ]
+  * Replacing calls to _iso_8859_1__utf8 with a single set of
+    GeoIP_set_charset.  Also now including region in everything bird.
+  * Fixing help message, the bird is named 'latlon', not 'lonlat'
+  * Merge Replacing calls to _iso_8859_1__utf8 with a single set of
+    GeoIP_set_charset. Also now including region in everything bird.
+  * Merge Fixing help message, the bird is named latlon, not lonlat
+  * Now using libcidr to do ip address matching.
+  * README   adding CIDR filter usage
+  * Updating ChangeLog
+  * Merge branch 'master' of
+    ssh://gerrit.wikimedia.org:29418/analytics/udp filters
+  * Makefile now removes man and doc when running make uninstall.
+  * Adding debian packaging
+  * Cleaning up man page generation in Makefile.
+  * Cleaning up usage info and help2man.include
+  * Removing required filters.  No more  f flag.
+  * Using 'ScreenType' defined constants in case instead of hardcoded
+    ints.
+  * Changing dependency on libcidr1 to renamed libcidr0
+  * Adding prefix preserving IP anonymization using libanon.
+  * Using my WMF keys to sign .debs
+  * Updating version number in udp filter.c
+
+  [ Diederik van Liere ]
+  * Tag created for version 0.2.6
+
+ -- Diederik van Liere <dvanliere@wikimedia.org>  Fri, 5 Oct 2012 16:27:30 +0300
+
+udp-filters (0.2.4) maverick; urgency=low
+
+  [ Petrea Corneliu Stefan  ]
+  * Created new 0.2.4 version from tag 0.2.4
+
+  [ Andrew Otto  ]
+  * Modified behavior of  n field to mean   min field count
+
+  [ Diederik van Liere ]
+  * Tag created for version 0.2.4
+
+ -- Diederik van Liere <dvanliere@wikimedia.org>  Fri, 5 Oct 2012 16:27:30 +0300
+
+udp-filters (0.2.3) maverick; urgency=low
+
+  [ Petrea Corneliu Stefan  ]
+  * Created new 0.2.3 version from tag 0.2.3
+
+  [ Diederik  ]
+  * Expanded ip6 logging Fixed segfault for country filter
+  * Completely overhauled debian packaging.
+  * Man entry for udp filter
+  * Clear cache, remove old unnecessary build files.
+  * Better debian packaging support, documentation:
+
+  [ Andrew Otto  ]
+  * Changing  n so that it specifies min fields.  Also adding a maximum
+    field limit of 32.
+  * Merge branch 'master' into fields
+
+  [ Diederik  ]
+  * Improved debian packaging, documentation
+
+  [ Andrew Otto  ]
+  * Merge branch 'master' into fields
+
+  [ Diederik van Liere ]
+  * Tag created for version 0.2.3
+
+ -- Diederik van Liere <dvanliere@wikimedia.org>  Fri, 5 Oct 2012 16:27:30 +0300
+
+udp-filters (0.2.0) UNRELEASED; urgency=low
+
+  [ Petrea Corneliu Stefan  ]
+  * Created new 0.2.0 version from tag 0.2.0
+
+  [ Catrope  ]
+  * Initial empty repository
+  * Add .gitreview file
+
+  [ Diederik  ]
+  * Initial commit, feedback Catrope incorporated, feedback Tim Starling
+    3x  incorporated
+  * Adding latest fixes.
+  * Fixed previous commit that containted error markers.
+  * Regex support
+  * Made minor changse to .gitignore
+  * Adding debian package support.
+  * Merge Adding debian package support.
+  * Added example configuration control and copyright file and updated
+    the README file with detailed installation instructions.
+  * Updated the documentation with the new  f or   force option.
+  * Updated control file to work on emery server.
+  * Fixed link.
+  * Added support for not having to define a filter,  the  f option .
+  * Merge Added support for not having to define a filter, the f option
+    .
+  * Merge Updated control file to work on emery server.
+  * Merge Fixed link.
+  * Ignore more build specific files.
+  * Simple script to test code quality.
+  * Improving support for regular expressions.
+  * Rename udp.c to udp filter.c so now the binary file name and the
+    source filename are consistent.
+  * Originally, this was udp.c, renamed to increase consistency.
+  * Check if country codes are valid and finish renaming stuff
+  * Adding ip filtering support  not working
+  * Added full support for ip address and ip range filtering Added full
+    support for regular expression matching Incorporated feedback from
+    Tim, still struggling around line 369   378. Change Id:
+    I8d52bbd84fd4ec39a6d735d802d9b87f95d1b0a0
+  * Improvements:
+  * Removed OS specific build file.
+  * Added longitude / latitude geocoding.
+  * Version 0.2:   IP Filtering   Geocoding at country, region, city and
+    latlon level   Fixed memory leaks   Roan is a hero
+  * Tim rewrote append_char function Removed exotic for/loop Replaced
+    all strtok with strchr.
+  * Disable GeoIP_cleanup   to keep compatability with GeoIP 1.4.6
+  * Add support for variable log line length using the  n switch.
+  * Added  V argument to print version information.
+
+  [ Diederik van Liere ]
+  * Tag created for version 0.2.0
+
+ -- Diederik van Liere <dvanliere@wikimedia.org>  Fri, 5 Oct 2012 16:27:30 +0300

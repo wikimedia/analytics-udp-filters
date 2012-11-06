@@ -1,5 +1,5 @@
 [name]
-udp-filter
+udp-filter - Filter for squid logs (capable of anonymizing and geolocation)
 
 [examples]
 Udp-filter reads from stdin and the output, by default, is written to stdout.

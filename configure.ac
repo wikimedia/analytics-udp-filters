@@ -1,15 +1,14 @@
-PACKAGE=udp-filter
-VERSION=0.2.4
+PACKAGE=udp-filters
+VERSION=DEBIANIZE_REPLACES_THIS_VERSION
 EMAIL=dvanliere@wikimedia.org
 
-AC_INIT([udp-filter],[0.2.2],[dvanliere@wikimedia.org])
+AC_INIT([udp-filters],[DEBIANIZE_REPLACES_THIS_VERSION],[dvanliere@wikimedia.org])
 AC_CONFIG_SRCDIR([src/udp-filter.c])
 AC_CONFIG_HEADER([config.h])
 AM_INIT_AUTOMAKE
-#AM_MAINTAINER_MODE([disable])
+
 AC_PROG_MAKE_SET
 
-AM_CONDITIONAL(DEBUG, test x"$debug" = x"true")
 
 #Checks for header files
 
@@ -41,21 +40,16 @@ AC_PATH_PROG(HELP2MAN, help2man, false // No help2man //)
 ##########################################################################
 # debug compilation support
 ##########################################################################
- 
-AC_MSG_CHECKING([whether to build with debug information])
-AC_ARG_ENABLE([debug],
-    [AS_HELP_STRING([--enable-debug],
-        [enable debug data generation (def=no)])],
-    [debugit="$enableval"],
-    [debugit=no])
-AC_MSG_RESULT([$debugit])
- 
+
+AC_ARG_ENABLE(debug,
+ [  --enable-debug ],
+ [ debugit=yes
+ ])
+
 if test x"$debugit" = x"yes"; then
-    AC_DEFINE([DEBUG],[],[Debug Mode])
-    AM_CXXFLAGS="$AM_CXXFLAGS -g -Wall -pedantic -Werror -Wno-uninitialized -O0"
+    AM_CXXFLAGS="$AM_CPPFLAGS -g -Wall -pedantic -Werror -Wno-uninitialized -O0"
 else
-    AC_DEFINE([NDEBUG],[],[No-debug Mode])
-    AM_CXXFLAGS="$AM_CXXFLAGS -O3 -Wall"
+    AM_CXXFLAGS="$AM_CPPFLAGS -O3 -Wall"
 fi
  
 ##########################################################################

@@ -1225,7 +1225,7 @@ int main(int argc, char **argv){
 				}
 			} else {
 													//no argument was given, write error and exit
-													fprintf(stderr, "No argument given to -a. Either give argument 'random' or a 32 characters long salt-key.\n", optarg);
+													fprintf(stderr, "No argument given to -a. Either give argument 'random' or a 32 characters long salt-key.\n");
 													exit(EXIT_FAILURE);
 												};
 
