@@ -100,7 +100,7 @@ const int maximum_field_count = 32;	// maximum number of fields ever allowed in 
  * 13. X-Forwarded-For header
  * 14. User-Agent header
  * 15. Accept-Language header
- * 16. x-wap-profile|Profile|wap-profile header(s)
+ * 16. X-Carrier header
 
 Sample line, with the client IP address replaced with 1.2.3.4 to protect the innocent:
 sq18.wikimedia.org 1715898 1169499304.066 0 1.2.3.4 TCP_MEM_HIT/200 13208 GET http://en.wikipedia.org/wiki/Main_Page NONE/- text/html - - Mozilla/4.0%20(compatible;%20MSIE%206.0;%20Windows%20NT%205.1;%20.NET%20CLR%201.1.4322) en-US -|-|-
@@ -1098,58 +1098,61 @@ void version() {
 }
 
 void usage() {
-	version();
+  version();
 
   printf("Usage: udp-filter [OPTION] ...\n");
   printf("  udp-filter reads from stdin and writes to stdout by default.");
   printf("\n");
   printf("Options:\n");
-  printf("  -p paths, --path=paths                 Path portions of the request URI to match.  Comma separated.\n");
+  printf("  -p paths, --path=paths                    Path portions of the request URI to match.  Comma separated.\n");
   printf("\n");
-  printf("  -d domains, --domain=domain            Parts of domain names to match.  Comma separated.\n");
+  printf("  -d domains, --domain=domain               Parts of domain names to match.  Comma separated.\n");
   printf("\n");
-  printf("  -r referers, --referers=domain         Parts of the referer domain to match. Comma separated.\n");
+  printf("  -r referers, --referers=domain            Parts of the referer domain to match. Comma separated.\n");
   printf("\n");
-  printf("  -i addresses, --ip=addresses           IP address(es) to match.  Comma seperated.  Accepts IPv4\n");
-  printf("                                         and IPv6 addresses and CIDR ranges.\n");
+  printf("  -i addresses, --ip=addresses              IP address(es) to match.  Comma seperated.  Accepts IPv4\n");
+  printf("                                            and IPv6 addresses and CIDR ranges.\n");
   printf("\n");
-  printf("  -c countries, --country-list=countries Filter for countries.  This should be a comma separated\n");
-  printf("                                         list of country codes. Valid country codes are the\n");
-  printf("                                         ISO 3166 country codes (see http://www.maxmind.com/app/iso3166).\n");
+  printf("  -c countries, --country-list=countries    Filter for countries.  This should be a comma separated\n");
+  printf("                                            list of country codes. Valid country codes are the\n");
+  printf("                                            ISO 3166 country codes (see http://www.maxmind.com/app/iso3166).\n");
   printf("\n");
-  printf("  -s status, --http-status=status        Filter for HTTP response status code(s).\n");
+  printf("  -s status, --http-status=status           Filter for HTTP response status code(s).\n");
   printf("\n");
-  printf("  -r pattern, --regex=pattern            The parameters -p, -u and -s are interpreted as regular\n");
-  printf("                                         expressions. Regular expression searching is probably \n");
-  printf("                                         slower so substring matching is recommended.\n");
+  printf("  -r pattern, --regex=pattern               The parameters -p, -u and -s are interpreted as regular\n");
+  printf("                                            expressions. Regular expression searching is probably\n");
+  printf("                                            slower so substring matching is recommended.\n");
   printf("\n");
-  printf("  -g, --geocode                          Turns on geocoding of IP addresses.\n");
-  printf("                                         Must also specify --bird.\n");
+  printf("  -g, --geocode                             Turns on geocoding of IP addresses.\n");
+  printf("                                            Must also specify --bird.\n");
   printf("\n");
-  printf("  -b bird, --bird=bird                   Mandatory when specifying --geocode.  Valid choices are\n");
-  printf("                                         <country>, <region>, <city>, <latlon> and <everything>.\n");
+  printf("  -b bird, --bird=bird                      Mandatory when specifying --geocode.  Valid choices are\n");
+  printf("                                            <country>, <region>, <city>, <latlon> and <everything>.\n");
   printf("\n");
-  printf("  -a, --anonymize[=salt-key]             Turns on IP addresses anonymization.  If salt-key is given, then\n");
-  printf("                                         libanon will be used to do prefix preserviing anonymization.\n");
-  printf("                                         salt-key may be 'random' a string at least 32 characters long.\n");
-  printf("                                         If 'random' is given, then a random salt-key will be chosen.\n");
+  printf("  -a, --anonymize[=salt-key]                Turns on IP addresses anonymization.  If salt-key is given, then\n");
+  printf("                                            libanon will be used to do prefix preserviing anonymization.\n");
+  printf("                                            salt-key may be 'random' a string at least 32 characters long.\n");
+  printf("                                            If 'random' is given, then a random salt-key will be chosen.\n");
   printf("\n");
-  printf("  -n count, --min-field-count=count      Minimum number of fields that a log line contains.\n");
-  printf("                                         Default is 14.  If a line has fewer than this number of\n");
-  printf("                                         fields,the line will be discarded.\n");
+  printf("  -n count, --min-field-count=count         Minimum number of fields that a log line contains.\n");
+  printf("                                            Default is 14.  If a line has fewer than this number of\n");
+  printf("                                            fields,the line will be discarded.\n");
   printf("\n");
-  printf("  -m path, --maxmind=path                Alternative path to MaxMind database.  Default %s.\n", maxmind_dir);
+  printf("  -m path, --maxmind=path                   Alternative path to MaxMind database.  Default %s.\n", maxmind_dir);
   printf("\n");
-  printf("  -o, --output-collector                 Output lines will be tailored for the collector\n");
+  printf("  -o, --output-collector                    Output lines will be tailored for the collector.\n");
   printf("\n");
-  printf("  -B, --bot-detect                       Bot detection will occur and project names will be labelled accordingly\n");
+  printf("  -B, --bot-detect                          Bot detection will occur and project names will be labelled accordingly.\n");
   printf("\n");
-  printf("  -t, --internal-traffic                 Activate internal traffic rules\n");
+  printf("  -t, --internal-traffic                    Activate internal traffic rules.\n");
   printf("\n");
-  printf("  -v, --verbose                          Output detailed debug information to stderr, not recommended\n");
-  printf("                                         in production.\n");
-  printf("  -h, --help                             Show this help message.\n");
-  printf("  -V, --version                          Show version info.\n\n");
+  printf("  -F delimiter, --field-delimiter=delimter  Sets the delimiter used to separate fields.  '\\t' will be translated to a\n");
+  printf("                                            tab character.   Default: ' ' (space).\n");
+  printf("\n");
+  printf("  -v, --verbose                             Output detailed debug information to stderr, not recommended.\n");
+  printf("                                            in production.\n");
+  printf("  -h, --help                                Show this help message.\n");
+  printf("  -V, --version                             Show version info.\n\n");
 }
 
 int main(int argc, char **argv){
@@ -1190,6 +1193,7 @@ int main(int argc, char **argv){
 			{"bot-detect"			 , no_argument			 , NULL , 'B'} ,
 			{"output-collector" , no_argument			 , NULL , 'o'} ,
 			{"internal-traffic" , no_argument			 , NULL , 't'} ,
+			{"field-delimiter",	  required_argument , NULL , 'F'} ,
 			{0									, 0								 , 0		, 0 }
 	};
 
@@ -1197,7 +1201,7 @@ int main(int argc, char **argv){
 
 	int c;
 
-	while((c = getopt_long(argc, argv, "a::b:c:d:f:m:n:s:ghi:rp:vVoBt", long_options, NULL)) != -1) {
+	while((c = getopt_long(argc, argv, "a::b:c:d:f:F:m:n:s:ghi:rp:vVoBt", long_options, NULL)) != -1) {
 		// b,c,d,f,i,m,n,s,p have mandatory arguments
 		switch(c)
 		{
@@ -1259,6 +1263,17 @@ int main(int argc, char **argv){
 			search=STRING;
 			break;
 
+		case 'F':
+			/* -F is set. This changes the field delimiter.
+			*/
+			// special case for '\t'.  If '\t' was passed,
+			// then use "\t" as a string to get a real tab character.
+			if (strcmp(optarg, "\\t") == 0) {
+				optarg = "\t";
+			}
+			ws_delimiter = optarg;
+			break;
+
 		case 'g':
 			/* Indicate whether we should do geocode, default is false */
 			recode = (recode | GEO);
@@ -1292,6 +1307,7 @@ int main(int argc, char **argv){
 			params[HTTP_STATUS_FILTER] = 1;
 			http_status_input = optarg;
 			break;
+
 		case 'r':
 			/* indicate whether we should treat the search string as a regular
 			 * expression or not, default is false
