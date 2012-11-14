@@ -1129,9 +1129,9 @@ void usage() {
   printf("  -b bird, --bird=bird                      Mandatory when specifying --geocode.  Valid choices are\n");
   printf("                                            <country>, <region>, <city>, <latlon> and <everything>.\n");
   printf("\n");
-  printf("  -a, --anonymize[=salt-key]                Turns on IP addresses anonymization.  If salt-key is given, then\n");
+  printf("  -a[salt-key], --anonymize[=salt-key]      Turns on IP addresses anonymization.  If salt-key is given, then\n");
   printf("                                            libanon will be used to do prefix preserviing anonymization.\n");
-  printf("                                            salt-key may be 'random' a string at least 32 characters long.\n");
+  printf("                                            salt-key may be 'random' or a string at least 32 characters long.\n");
   printf("                                            If 'random' is given, then a random salt-key will be chosen.\n");
   printf("\n");
   printf("  -n count, --min-field-count=count         Minimum number of fields that a log line contains.\n");
@@ -1156,45 +1156,46 @@ void usage() {
 }
 
 int main(int argc, char **argv){
-	char *country_input = NULL;
-	char *path_input = NULL;
-	char *domain_input = NULL;
-	char *ipaddress_input = NULL;
-	char *referer_input = NULL;
-	char *http_status_input = NULL;
-	char *db_path = NULL;
-	char *bird = NULL;
-	int geo_param_supplied = -1;
-				int output_for_collector_flag = 0; // this flag indicates if the output will be tailored for collector
-				int bot_flag = 0; // this flag indicates if bot detection will occur
-				int internal_traffic_rules_flag = 0;
+	char *country_input             = NULL;
+	char *path_input                = NULL;
+	char *domain_input              = NULL;
+	char *ipaddress_input           = NULL;
+	char *referer_input             = NULL;
+	char *http_status_input         = NULL;
+	char *db_path                   = NULL;
+	char *bird                      = NULL;
+	int geo_param_supplied          = -1;
+	int output_for_collector_flag   = 0; // this flag indicates if the output will be tailored for collector
+	int bot_flag                    = 0; // this flag indicates if bot detection will occur
+	int internal_traffic_rules_flag = 0;
+
 	// Expected minimum number of fields in a line.
-	// There	can be no fewer than this, but no more than
+	// There can be no fewer than this, but no more than
 	// maximum_field_count space separated fields in a long line.
 	// Anything outside of this range will be discarded.
 	int minimum_field_count = 14;
 
 	static struct option long_options[] = {
-			{"anonymize"				, optional_argument , NULL , 'a'} ,
-			{"bird"						 , required_argument , NULL , 'b'} ,
-			{"country_list"		 , required_argument , NULL , 'c'} ,
-			{"domain"					 , required_argument , NULL , 'd'} ,
-			{"geocode"					, no_argument			 , NULL , 'g'} ,
-			{"help"						 , no_argument			 , NULL , 'h'} ,
-			{"ip"							 , required_argument , NULL , 'i'} ,
-			{"http-status"			, required_argument , NULL , 's'} ,
-			{"maxmind"					, required_argument , NULL , 'm'} ,
-			{"min-field-count"	, required_argument , NULL , 'n'} ,
-			{"path"						 , required_argument , NULL , 'p'} ,
-			{"regex"						, no_argument			 , NULL , 'r'} ,
-			{"referer"					, required_argument , NULL , 'f'} ,
-			{"verbose"					, no_argument			 , NULL , 'v'} ,
-			{"version"					, no_argument			 , NULL , 'V'} ,
-			{"bot-detect"			 , no_argument			 , NULL , 'B'} ,
-			{"output-collector" , no_argument			 , NULL , 'o'} ,
-			{"internal-traffic" , no_argument			 , NULL , 't'} ,
-			{"field-delimiter",	  required_argument , NULL , 'F'} ,
-			{0									, 0								 , 0		, 0 }
+			{"anonymize",           optional_argument,  NULL, 'a'},
+			{"bird",                required_argument,  NULL, 'b'},
+			{"country_list",        required_argument,  NULL, 'c'},
+			{"domain",              required_argument,  NULL, 'd'},
+			{"geocode",             no_argument,        NULL, 'g'},
+			{"help" ,               no_argument,        NULL, 'h'},
+			{"ip",                  required_argument,  NULL, 'i'},
+			{"http-status",         required_argument,  NULL, 's'},
+			{"maxmind",             required_argument,  NULL, 'm'},
+			{"min-field-count",     required_argument,  NULL, 'n'},
+			{"path",                required_argument,  NULL, 'p'},
+			{"regex",               no_argument,        NULL, 'r'},
+			{"referer",             required_argument,  NULL, 'f'},
+			{"verbose",             no_argument,        NULL, 'v'},
+			{"version",             no_argument,        NULL, 'V'},
+			{"bot-detect",          no_argument,        NULL, 'B'},
+			{"output-collector",    no_argument,        NULL, 'o'},
+			{"internal-traffic",    no_argument,        NULL, 't'},
+			{"field-delimiter",     required_argument,  NULL, 'F'},
+			{0, 0, 0, 0}
 	};
 
 	signal(SIGINT,die);
@@ -1210,7 +1211,7 @@ int main(int argc, char **argv){
 			recode = (recode | ANONYMIZE);
 
 			// if optarg is NULL, then we will not be using
-			// libanon.	No need to initialize the anon ip objects
+			// libanon. No need to initialize the anon ip objects
 			if (optarg != NULL) {
 				// if 'random', then use a random
 				// anon salt key by passing NULL to init_anon_ip().
@@ -1227,11 +1228,12 @@ int main(int argc, char **argv){
 				else {
 					init_anon_ip((uint8_t *)optarg);
 				}
-			} else {
-													//no argument was given, write error and exit
-													fprintf(stderr, "No argument given to -a. Either give argument 'random' or a 32 characters long salt-key.\n");
-													exit(EXIT_FAILURE);
-												};
+			} 
+			else {
+				//no argument was given, write error and exit
+				fprintf(stderr, "No argument given to -a. Either give argument 'random' or a 32 characters long salt-key.\n");
+				exit(EXIT_FAILURE);
+			};
 
 			break;
 
@@ -1364,20 +1366,23 @@ int main(int argc, char **argv){
 		/* There were no options given at all */
 		usage();
 		exit(EXIT_FAILURE);
-	} else {
+	} 
+	else {
 		parse(country_input,
-					path_input,
-					domain_input,
-					ipaddress_input,
-					http_status_input,
-					referer_input,
-					bird,
-					db_path,
-					minimum_field_count,
-					output_for_collector_flag,
-					bot_flag,
-					internal_traffic_rules_flag);
-					return EXIT_SUCCESS;
+			path_input,
+			domain_input,
+			ipaddress_input,
+			http_status_input,
+			referer_input,
+			bird,
+			db_path,
+			minimum_field_count,
+			output_for_collector_flag,
+			bot_flag,
+			internal_traffic_rules_flag
+		);
+
+		return EXIT_SUCCESS;
 	}
 	return 0;
 }
