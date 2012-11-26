@@ -1,4 +1,4 @@
-udp-filters (0.3.19) maverick; urgency=low
+udp-filters (0.3.19) maverick-wikimedia; urgency=low
 
   [ Petrea Corneliu Stefan  ]
   * Created new 0.3.19 version from tag 0.3.19
@@ -44,7 +44,7 @@ udp-filters (0.3.19) maverick; urgency=low
 
  -- Diederik van Liere <dvanliere@wikimedia.org>  Fri, 2 Nov 2012 18:52:28 +0200
 
-udp-filters (0.3) maverick; urgency=low
+udp-filters (0.3) maverick-wikimedia; urgency=low
 
   [ Petrea Corneliu Stefan  ]
   * Created new 0.3 version from tag 0.3
@@ -69,7 +69,7 @@ udp-filters (0.3) maverick; urgency=low
 
  -- Diederik van Liere <dvanliere@wikimedia.org>  Fri, 5 Oct 2012 16:27:29 +0300
 
-udp-filters (0.2.6) maverick; urgency=low
+udp-filters (0.2.6) maverick-wikimedia; urgency=low
 
   [ Petrea Corneliu Stefan  ]
   * Created new 0.2.6 version from tag 0.2.6
@@ -117,7 +117,7 @@ udp-filters (0.2.6) maverick; urgency=low
 
  -- Diederik van Liere <dvanliere@wikimedia.org>  Fri, 5 Oct 2012 16:27:30 +0300
 
-udp-filters (0.2.4) maverick; urgency=low
+udp-filters (0.2.4) maverick-wikimedia; urgency=low
 
   [ Petrea Corneliu Stefan  ]
   * Created new 0.2.4 version from tag 0.2.4
@@ -130,7 +130,7 @@ udp-filters (0.2.4) maverick; urgency=low
 
  -- Diederik van Liere <dvanliere@wikimedia.org>  Fri, 5 Oct 2012 16:27:30 +0300
 
-udp-filters (0.2.3) maverick; urgency=low
+udp-filters (0.2.3) maverick-wikimedia; urgency=low
 
   [ Petrea Corneliu Stefan  ]
   * Created new 0.2.3 version from tag 0.2.3
@@ -160,7 +160,7 @@ udp-filters (0.2.3) maverick; urgency=low
 
 udp-filters (0.2.0) UNRELEASED; urgency=low
 
-  [ Petrea Corneliu Stefan  ]
+  [ s ]
   * Created new 0.2.0 version from tag 0.2.0
 
   [ Catrope  ]

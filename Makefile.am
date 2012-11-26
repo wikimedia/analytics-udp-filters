@@ -2,7 +2,9 @@ CFLAGS=
 AM_CPPFLAGS=
 AM_CFLAGS=$(AM_CXXFLAGS)
 
-bin_PROGRAMS = udp-filter
+bin_PROGRAMS = udp-filter udp-filter-static
+
+
 udp_filter_SOURCES = src/udp-filter.c       \
                      src/udp-filter.h       \
                      src/countries.c        \
@@ -19,9 +21,15 @@ udp_filter_SOURCES = src/udp-filter.c       \
                      src/utils.c
 
 
-
 AM_CPPFLAGS = $(GEOIP_CFLAGS)
-udp_filter_LDADD = $(GEOIP_LIBS) $(DEPS_LIBS) -lGeoIP -lcidr -lanon
+
+udp_filter_LDADD = 	  $(GEOIP_LIBS) $(DEPS_LIBS) -lGeoIP -lcidr -lanon
+
+
+udp_filter_static_SOURCES = $(udp_filter_SOURCES)
+udp_filter_static_LDADD   = $(udp_filter_LDADD) -lcrypto -lz -ldl -lssl
+udp_filter_static_LDFLAGS = -static
+
 #If you know a way how to automatically detect a library, then please contact me or submit a patch. 
 
 man: udp-filter$(EXEEXT)

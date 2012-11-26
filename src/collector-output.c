@@ -109,6 +109,16 @@ bool internal_traffic_fill_suffix_language(info *i) {
     "blog",
     NULL
   };
+
+  /* safety check, do we have a project in there or is it
+   * empty ? 
+   */
+  if(!i->project) {
+    strcpy(i->project,"N/A");
+    strcpy(i->suffix ,"N/A");
+    return false;
+  };
+
   if(        !strcmp(i->project,"wikipedia")) {
     i->suffix = "";
   } else if( !strcmp(i->project,"wikimedia")) {
@@ -120,6 +130,10 @@ bool internal_traffic_fill_suffix_language(info *i) {
       };
     };
     return false;
+  } else if( !strcmp(i->project,"wikidata")) {
+    i->suffix = ".wd";
+  } else if( !strcmp(i->project,"wikivoyage")) {
+    i->suffix = ".wv";
   } else if( !strcmp(i->project,"wiktionary")) {
     i->suffix = ".d";
   } else if( !strcmp(i->project,"wikinews")) {
@@ -168,20 +182,25 @@ bool internal_traffic_fill_suffix_language(info *i) {
   */
 
 
-bool match_internal_traffic_rules(char *url,char *ip,url_s *u,info *in) {
+
+int match_internal_traffic_rules(char *url,char *ip,url_s *u,info *in) {
+  int retval = 0;
 
   if (!url) {
-    return false;
+    retval |= RETVAL_MATCH_INTERNAL_NO_URL;
+    return retval;
   };
 
 
   if(!internal_traffic_ip_check(ip)) {
-    return false;
+    retval |= RETVAL_MATCH_INTERNAL_IP_REJECTED;
   };
 
   internal_traffic_explode_url(url,u);
 
-  /* this branch is for urls with /wiki/ inside them */
+  /** this branch is for urls with /wiki/ inside them 
+    * that means that the url is a url to a mediawiki website
+    */
   if(u->has_title) {
     in->title = u->title;
 
@@ -190,25 +209,30 @@ bool match_internal_traffic_rules(char *url,char *ip,url_s *u,info *in) {
 
     if(strcmp(u->host_parts[0],"m") ==0) {
       in->project = "m.wikipedia";
-      return true;
+      retval |= RETVAL_MATCH_INTERNAL_VALID;
     } else if(strcmp(in->language,"wikimediafoundation")==0) {
+      // special case, this is not a mediawiki
       in->project  = in->language;
       in->language =  "blog";
-      return true;
+      retval |= RETVAL_MATCH_INTERNAL_VALID;
+    } else if (strcmp(in->project,"wikivoyage")==0) {
+      retval |= RETVAL_MATCH_INTERNAL_VALID;
     } else {
 
-      if(strlen(in->project) > 0 && strlen(in->language) > 0) {
-        return true;
-      } else {
-        /*fprintf(stderr,"parse_url => false => line %d\n",__LINE__);*/
-        return false;
-      }
+      if(strlen(in->project) == 0) {
+        retval |= RETVAL_MATCH_INTERNAL_PROJECT_EMPTY_REJECTED;
+      };
+      
+      if( strlen(in->language) == 0) {
+        retval |= RETVAL_MATCH_INTERNAL_LANGUAGE_EMPTY_REJECTED;
+      };
+
     };
 
   } else {
     /* this branch is for special cases */
-        in->project  = u->host_parts[u->n_host_parts-2];
-      in->language = u->host_parts[0];
+    in->project  = u->host_parts[u->n_host_parts-2];
+    in->language = u->host_parts[0];
 
 
     if(
@@ -219,7 +243,7 @@ bool match_internal_traffic_rules(char *url,char *ip,url_s *u,info *in) {
       in->language = u->host_parts[1];
       strcpy(u->title,"main");
       in->title = u->title;
-      return true;
+      retval |= RETVAL_MATCH_INTERNAL_VALID;
       // for blog.wikimedia.org
     } else if(strcmp(u->host_parts[1],"wikimedia")==0 && strcmp(u->host_parts[0],"blog")==0 ) {
       strcpy(u->title,"main");
@@ -232,16 +256,18 @@ bool match_internal_traffic_rules(char *url,char *ip,url_s *u,info *in) {
       char *title=u->dir + len_dir;
       while(*--title != '/');
       in->title = title+1;
-      return true;
+      retval |= RETVAL_MATCH_INTERNAL_VALID;
       //for wikimediafoundation.org
     } else if(strcmp(in->project,"wikimediafoundation")==0) {
       strcpy(u->title,"main");
       in->title = u->title;
-      return true;
+      retval |= RETVAL_MATCH_INTERNAL_VALID;
     };
 
-    return false;
+    retval |= RETVAL_MATCH_INTERNAL_SPECIAL_UNRECOGNIZED;
   };
+
+  return retval;
 }
 
 bool internal_traffic_detect_bot(const char *user_agent) {

@@ -57,7 +57,11 @@ status_filter3=$(cat example.log | $UDP_FILTER -s 400,200 | wc -l)
 
 referer_filter1=$(cat example.log| $UDP_FILTER -f www.mediawiki.org | wc -l)
 
-collector_output1=$(cat example.collector.log | $UDP_FILTER -o -B | diff example.collector.expected_result -)
+collector_output1=$(cat example.collector.log  | $UDP_FILTER -o -B | diff example.collector.expected_result -)
+collector_output2=$(cat example.collector2.log | ./udp-filter -o | grep "null" | wc -l )
+collector_output3_wv=$(cat example.wikivoyage.wikidata.log | ./udp-filter -o | grep "\.wv" | wc -l )
+collector_output3_wd=$(cat example.wikivoyage.wikidata.log | ./udp-filter -o | grep "\.wd" | wc -l )
+
 red="\033[31m"
 green="\033[32m"
 black="\033[30m"
@@ -187,14 +191,28 @@ fi
 if [ -z "$collector_output1" ]; then
         cecho "Pass" $green
 else
-	cecho "Fail" $red
+	  cecho "Fail" $red
 fi
 
+# collector output should not have any (null)
+if [ $collector_output2 -eq 0 ]; then
+        cecho "Pass" $green
+else
+	  cecho "Fail" $red
+fi
 
 if [ $referer_filter1 -eq 1 ]; then
 	cecho "Pass" $green
 else
 	cecho "Fail" $red
 fi
+
+if [ $collector_output3_wv -eq 2 -a $collector_output3_wd -eq 2 ]; then
+	cecho "Pass" $green
+else
+	cecho "Fail" $red
+fi
+
+
 exit 0
 

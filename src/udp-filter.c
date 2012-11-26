@@ -953,9 +953,9 @@ void parse(char *country_input,
 
 		
  
-		/**
-			* Collector output and internal traffic filters here
-		*/
+		/*
+		 * Collector output and internal traffic filters here
+		 */
 
 		url_s internal_traffic_url_s; // url broken down into pieces
 		info	internal_traffic_info;
@@ -966,16 +966,27 @@ void parse(char *country_input,
 		internal_traffic_info.size = response_size;
 
 
-		if(internal_traffic_rules_flag) {
+		if( output_for_collector_flag || internal_traffic_rules_flag) {
 			strcpy(url_dup,url);
-			if(!match_internal_traffic_rules(url_dup,ipaddr,&internal_traffic_url_s,&internal_traffic_info)) {
+			int retval_match			= match_internal_traffic_rules(url_dup,ipaddr,&internal_traffic_url_s,&internal_traffic_info);
+			bool retval_suffix_language	= internal_traffic_fill_suffix_language(&internal_traffic_info);
+
+			if( (retval_match & ~RETVAL_MATCH_INTERNAL_VALID) || (internal_traffic_info.title == NULL) ) {
 				continue;
 			};
 
-			if(!internal_traffic_fill_suffix_language(&internal_traffic_info)) {
-				continue;
+			if(internal_traffic_rules_flag) {
+
+				if(! retval_suffix_language) {
+					continue;
+				};
+
 			};
+
 		};
+
+
+
 
 		/***************************************************************/
 

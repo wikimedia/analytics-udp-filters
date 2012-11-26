@@ -4482,7 +4482,6 @@ if test "${enable_debug+set}" = set; then :
 fi
 
 
-echo "!!!!! (configure.ac) $debugit"
 if test x"$debugit" = x"yes"; then
     AM_CXXFLAGS="$AM_CPPFLAGS -g -Wall -pedantic -Werror -Wno-uninitialized -O0"
 else
