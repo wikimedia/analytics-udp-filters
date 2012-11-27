@@ -133,7 +133,7 @@ bool internal_traffic_fill_suffix_language(info *i) {
   } else if( !strcmp(i->project,"wikidata")) {
     i->suffix = ".wd";
   } else if( !strcmp(i->project,"wikivoyage")) {
-    i->suffix = ".wv";
+    i->suffix = ".wo";
   } else if( !strcmp(i->project,"wiktionary")) {
     i->suffix = ".d";
   } else if( !strcmp(i->project,"wikinews")) {

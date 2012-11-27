@@ -59,7 +59,7 @@ referer_filter1=$(cat example.log| $UDP_FILTER -f www.mediawiki.org | wc -l)
 
 collector_output1=$(cat example.collector.log  | $UDP_FILTER -o -B | diff example.collector.expected_result -)
 collector_output2=$(cat example.collector2.log | ./udp-filter -o | grep "null" | wc -l )
-collector_output3_wv=$(cat example.wikivoyage.wikidata.log | ./udp-filter -o | grep "\.wv" | wc -l )
+collector_output3_wo=$(cat example.wikivoyage.wikidata.log | ./udp-filter -o | grep "\.wo" | wc -l )
 collector_output3_wd=$(cat example.wikivoyage.wikidata.log | ./udp-filter -o | grep "\.wd" | wc -l )
 
 red="\033[31m"
@@ -207,7 +207,7 @@ else
 	cecho "Fail" $red
 fi
 
-if [ $collector_output3_wv -eq 2 -a $collector_output3_wd -eq 2 ]; then
+if [ $collector_output3_wo -eq 2 -a $collector_output3_wd -eq 2 ]; then
 	cecho "Pass" $green
 else
 	cecho "Fail" $red

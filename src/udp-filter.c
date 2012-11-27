@@ -64,7 +64,7 @@ char *VERSION="development-placeholder-version";
  */
 
 
-
+#define min(a,b)  ( ( (a) < (b) ) ? (a) : (b) )
 
 
 
@@ -833,7 +833,7 @@ void parse(char *country_input,
 	// do the actual filtering and conversion of the
 	// incoming data.
 	while (!feof(stdin)) {
-		int found =0;
+                int found =0;
 		area = NULL;
 		//re-initialize the fields array.
 		for (j = 0; j < maximum_field_count; j++) {
@@ -841,7 +841,10 @@ void parse(char *country_input,
 		}
 
 		char *r;
-		r=fgets(line, 65534, stdin);
+
+		bzero(&line,sizeof(line));
+		r=fgets(line, 65533, stdin);
+
 		if(!r) {
 			break;
 		}
@@ -869,7 +872,7 @@ void parse(char *country_input,
 		// we found i fields in this line.
 		field_count_this_line = i;
 
-		int field_geoip_index = 0;
+                int field_geoip_index = 0;
 
 
 		ipaddr             = fields[4];
@@ -882,10 +885,14 @@ void parse(char *country_input,
 
 
 		// 40 because that's the maximum size of a ipv6/ipv4 ip address
-		char		 x_forwarded_client[40];
+                // http://stackoverflow.com/questions/166132/maximum-length-of-the-textual-representation-of-an-ipv6-address 
+                char		 x_forwarded_client[40];
 
 		// using x_forwarded field for geoip
-		bool using_xforwarded_for_geoip = false;
+                bool using_xforwarded_for_geoip = false;
+
+                //truncate url to 10k bytes
+                url[min(strlen(url),10000)] = '\0';
 
 			
 		/* 
@@ -893,7 +900,7 @@ void parse(char *country_input,
 		 * using_xforwarded_for_geoip will indicate if we have a valid ipv4/ipv6 ip
 		 * to use for geoip and the needed ip will be stored inside
 		 * x_forwarded_client 
-     *
+                 *
 		 * sanity checks: 
 		 *
 		 * 1) the x_forwarded_client must be of length at least 7
@@ -904,188 +911,192 @@ void parse(char *country_input,
 		 *
 		 *  
 		 */
-		if(
-			 strlen(x_forwarded_for) >= 7			&&
-			 strncmp(x_forwarded_for,"http" ,4) != 0	&&
-			 strncmp(x_forwarded_for,"-" ,1)	!= 0
-			) {
-			char *ix = x_forwarded_for;
-			bool found_multiple_ips = false;
-			bool found_illegal_char = false;
+		    if(
+				strlen(x_forwarded_for) >= 7			&&
+				strncmp(x_forwarded_for,"http" ,4) != 0	&&
+				strncmp(x_forwarded_for,"-" ,1)    != 0
+		    ) {
+			    char *ix = x_forwarded_for;
+			    bool found_multiple_ips = false;
+			    bool found_illegal_char = false;
 
-			// length of the first ip in x-forwarded-for header
-			int len = 0;
-			for(;*ix != '\0';ix++) {
-				// we just take what we need which is everything up until the comma
-				if(	(*ix >= 'a' && *ix <= 'f' )	||
-					(*ix >= '0' && *ix <= '9' )	||
-						*ix == '.'			||
-						*ix == ':'			||
-						*ix == ','			||
-						*ix == '%'
+			    // length of the first ip in x-forwarded-for header
+			    int len = 0;
+			    for(;*ix != '\0';ix++) {
+			    // we just take what we need which is everything up until the comma
+				    if(*ix == ',' || *ix == '%') {
+					    found_multiple_ips = true;
+					    len = ix - x_forwarded_for;
+					    int sz_copy = min(len,40);
+					    strncpy(x_forwarded_client,x_forwarded_for, sz_copy);
+					    x_forwarded_client[sz_copy] = '\0';
+					    x_forwarded_client[len] = 0;
+					    break;
+				    };
+				    if(	(*ix >= 'a' && *ix <= 'f' )	||
+						(*ix >= '0' && *ix <= '9' )	||
+						 *ix == '.'	||
+						 *ix == ':'	||
+						 *ix == ','	||
+						 *ix == '%'
 					) {
-					} else {
-						found_illegal_char = true;
-						using_xforwarded_for_geoip  = false;
-						break;
-					};
-				if(*ix == ',') {
-					found_multiple_ips = true;
-					len = ix - x_forwarded_for;
-					strncpy(x_forwarded_client,x_forwarded_for, len);
-					x_forwarded_client[len] = 0;
+				} else {
+					found_illegal_char = true;
+					using_xforwarded_for_geoip  = false;
 					break;
 				};
-			};
+		    };
 
-			len = ix - x_forwarded_for ;
-			// the smallest ipv4 address is  0.0.0.0 (7 chars)
-			// the biggest  ipv6 address is  xxxx:yyyy:zzzz:mmmm:pppp:qqqq:rrrr:ssss (39 chars)
-			if( len >= 7  && len <= 39 && !found_illegal_char ) {
-				using_xforwarded_for_geoip = true;
-				strncpy(x_forwarded_client,x_forwarded_for, len);
-				x_forwarded_client[len] = 0;
-			};
+		    len = ix - x_forwarded_for ;
+		    // the smallest ipv4 address is  0.0.0.0 (7 chars)
+		    // the biggest  ipv6 address is  xxxx:yyyy:zzzz:mmmm:pppp:qqqq:rrrr:ssss (39 chars)
+		    if( len >= 7  && len <= 39 && !found_illegal_char ) {
+			    using_xforwarded_for_geoip = true;
+			    strncpy(x_forwarded_client,x_forwarded_for, len);
+			    x_forwarded_client[len] = 0;
+		    };
 
-		} else {
-			using_xforwarded_for_geoip = false;
-		};
+		    } else {
+			    using_xforwarded_for_geoip = false;
+		    };
 
 		
+                //truncate x_forwarded_client
+                x_forwarded_client[min(strlen(x_forwarded_client),40)] = '\0';
  
 		/*
 		 * Collector output and internal traffic filters here
 		 */
+		    url_s internal_traffic_url_s; // url broken down into pieces
+		    info	internal_traffic_info;
+		    char url_dup[10000];
 
-		url_s internal_traffic_url_s; // url broken down into pieces
-		info	internal_traffic_info;
-		char url_dup[7000];
+		    bzero(&internal_traffic_url_s ,sizeof(internal_traffic_url_s));
+		    bzero(&internal_traffic_info	,sizeof(internal_traffic_info ));
+		    internal_traffic_info.size = response_size;
 
-		bzero(&internal_traffic_url_s ,sizeof(internal_traffic_url_s));
-		bzero(&internal_traffic_info	,sizeof(internal_traffic_info ));
-		internal_traffic_info.size = response_size;
-
-
-		if( output_for_collector_flag || internal_traffic_rules_flag) {
-			strcpy(url_dup,url);
-			int retval_match			= match_internal_traffic_rules(url_dup,ipaddr,&internal_traffic_url_s,&internal_traffic_info);
-			bool retval_suffix_language	= internal_traffic_fill_suffix_language(&internal_traffic_info);
-
-			if( (retval_match & ~RETVAL_MATCH_INTERNAL_VALID) || (internal_traffic_info.title == NULL) ) {
-				continue;
-			};
-
-			if(internal_traffic_rules_flag) {
-
-				if(! retval_suffix_language) {
-					continue;
-				};
-
-			};
-
-		};
+		    if( output_for_collector_flag || internal_traffic_rules_flag) {
+			    strcpy(url_dup,url);
+			    int retval_match		= match_internal_traffic_rules(url_dup,ipaddr,&internal_traffic_url_s,&internal_traffic_info);
+			    bool retval_suffix_language	= internal_traffic_fill_suffix_language(&internal_traffic_info);
 
 
+			    if( (retval_match & ~RETVAL_MATCH_INTERNAL_VALID) || (internal_traffic_info.title == NULL) ) {
+				    continue;
+			    };
+
+			    if(internal_traffic_rules_flag) {
+
+				    if(! retval_suffix_language) {
+					    continue;
+				    };
+				    if(retval_match & RETVAL_MATCH_INTERNAL_IP_REJECTED) {
+					    continue;
+				    };
+
+			    };
+
+		    };
 
 
-		/***************************************************************/
+                /***************************************************************/
 
 
-		if (url != NULL) {
+                if (url != NULL) {
 
-			if (params[DOMAIN_FILTER] == 1){
-				found += match_domain(url, filters, num_domain_filters,verbose_flag);
-			}
+                        if (params[DOMAIN_FILTER] == 1){
+                                found += match_domain(url, filters, num_domain_filters,verbose_flag);
+                        }
 
-			if (params[PATH_FILTER] == 1){
-				found += match_path(url, filters, num_path_filters,verbose_flag);
-			}
+                        if (params[PATH_FILTER] == 1){
+                                found += match_path(url, filters, num_path_filters,verbose_flag);
+                        }
 
-			if (params[HTTP_STATUS_FILTER] == 1){
-				found += match_http_status(http_status, filters, num_http_status_filters,verbose_flag);
-			}
+                        if (params[HTTP_STATUS_FILTER] == 1){
+                                found += match_http_status(http_status, filters, num_http_status_filters,verbose_flag);
+                        }
 
-			if (params[IP_FILTER] == 1){
-				found += match_ip_address(ipaddr, filters, num_ipaddress_filters,verbose_flag);
-			}
+                        if (params[IP_FILTER] == 1){
+                                found += match_ip_address(ipaddr, filters, num_ipaddress_filters,verbose_flag);
+                        }
 
-			if (params[REFERER_FILTER] == 1){
-				found += match_domain(referer, filters, num_referer_filters,verbose_flag);
-			}
+                        if (params[REFERER_FILTER] == 1){
+                                found += match_domain(referer, filters, num_referer_filters,verbose_flag);
+                        }
 
-			if (params[GEO_FILTER] == 1){
-				if(using_xforwarded_for_geoip) {
-					area = geo_lookup(gi, x_forwarded_client, bird_int);
-				} else {
-					area = geo_lookup(gi, ipaddr, bird_int);
-				};
-				found += geo_check(area, countries, num_countries_filters,verbose_flag);
-				if (verbose_flag){
-					fprintf(stderr, "IP address: %s was geocoded as: %s\n", ipaddr, area);
-				};
-				if(area) {
-					field_geoip_index = append_field(fields,area,&field_count_this_line);
-				};
-			}
-		};
-
-
-
-		// required_hits will equal the number of filters
-		// given.	These include ip, domain, path, status,
-		// and country filtering.	If no filters where given,
-		// then found will be 0 AND require_hits will be 0,
-		// allowing the line to pass through.
-		if (found >= required_hits) {
-			// if we need to replace the IP addr
-			// because recode is GEO or ANONYMIZE or both
-			if (recode)
-			{
-				// geocode if we haven't already geocoded and
-				// we'll be needing the geocoded string when
-				// replacing the IP.
-				if (area == NULL && (recode & GEO)) {
-					if(using_xforwarded_for_geoip) {
-						area = geo_lookup(gi, x_forwarded_client, bird_int);
-					} else {
-						area = geo_lookup(gi, ipaddr, bird_int);
-					};
-					if(area) {
-						field_geoip_index = append_field(fields,area,&field_count_this_line);
-					};
-				}
-
-				// replace the ip address in fields.
-				// if area is not null, it will be appended
-				// to the ip address.	If (recode & ANONYMIZE) is
-				// true, then the IP will be replaced with the anonymized version
-
-				int should_anonymize_ip = recode & ANONYMIZE;
-				if (should_anonymize_ip) {
-					fields[4] = anonymize_ip_address(fields[4]);
-				}
+                        if (params[GEO_FILTER] == 1){
+                                if(using_xforwarded_for_geoip) {
+                                        area = geo_lookup(gi, x_forwarded_client, bird_int);
+                                } else {
+                                        area = geo_lookup(gi, ipaddr, bird_int);
+                                };
+                                found += geo_check(area, countries, num_countries_filters,verbose_flag);
+                                if (verbose_flag){
+                                        fprintf(stderr, "IP address: %s was geocoded as: %s\n", ipaddr, area);
+                                };
+                                if(area) {
+                                        field_geoip_index = append_field(fields,area,&field_count_this_line);
+                                };
+                        }
+                };
 
 
-			};
+
+		    // required_hits will equal the number of filters
+		    // given.	These include ip, domain, path, status,
+		    // and country filtering.	If no filters where given,
+		    // then found will be 0 AND require_hits will be 0,
+		    // allowing the line to pass through.
+		    if (found >= required_hits) {
+			    // if we need to replace the IP addr
+			    // because recode is GEO or ANONYMIZE or both
+			    if (recode)
+				    {
+					    // geocode if we haven't already geocoded and
+					    // we'll be needing the geocoded string when
+					    // replacing the IP.
+					    if (area == NULL && (recode & GEO)) {
+						    if(using_xforwarded_for_geoip) {
+							    area = geo_lookup(gi, x_forwarded_client, bird_int);
+						    } else {
+							    area = geo_lookup(gi, ipaddr, bird_int);
+						    };
+						    if(area) {
+							    field_geoip_index = append_field(fields,area,&field_count_this_line);
+						    };
+					    }
+
+					    // replace the ip address in fields.
+					    // if area is not null, it will be appended
+					    // to the ip address.	If (recode & ANONYMIZE) is
+					    // true, then the IP will be replaced with the anonymized version
+
+					    int should_anonymize_ip = recode & ANONYMIZE;
+					    if (should_anonymize_ip) {
+						    fields[4] = anonymize_ip_address(fields[4]);
+					    }
 
 
-			if(output_for_collector_flag) {
-				internal_traffic_print_for_collector(&internal_traffic_info,ua,bot_flag);
-			} else {
-				// print output to stdout
-				for (i=0;i<field_count_this_line;++i){
-					if (i!=0){
-						FPUTS(ws_delimiter, stdout);
-					}
-					FPUTS(fields[i], stdout);
-				}
-			}
+				    };
 
-		}
 
-		if (verbose_flag) {
-			fprintf(stderr, "ipaddr: '%s', url: '%s, status: %s'\n", ipaddr, url, http_status);
-		}
+				    if(output_for_collector_flag) {
+					    internal_traffic_print_for_collector(&internal_traffic_info,ua,bot_flag);
+				    } else {
+					    // print output to stdout
+					    for (i=0;i<field_count_this_line;++i){
+						    if (i!=0){
+							    FPUTS(ws_delimiter, stdout);
+						    }
+						    FPUTS(fields[i], stdout);
+					    }
+				    }
+
+		    }
+
+		    if (verbose_flag) {
+			    fprintf(stderr, "ipaddr: '%s', url: '%s, status: %s'\n", ipaddr, url, http_status);
+		    }
 
 	}
 	free_memory(filters, path_input, domain_input,num_filters, gi, countries, num_countries_filters);

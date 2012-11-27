@@ -53,9 +53,9 @@ typedef struct {
 typedef struct {
   bool has_dir;
   bool has_title;
-  char dir[2000];
-  char title[7000];
-  char host_parts[30][200];
+  char dir[10000];
+  char title[10000];
+  char host_parts[30][10000];
   int  n_host_parts;
 } url_s ;
 
