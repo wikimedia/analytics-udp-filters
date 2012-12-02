@@ -65,5 +65,7 @@ bool internal_traffic_fill_suffix_language(info *i);
 int match_internal_traffic_rules(char *url,char *ip,url_s *u,info *in);
 bool internal_traffic_detect_bot(const char *user_agent);
 void internal_traffic_print_for_collector(info *i,char *ua,int _bot_flag);
+void debug_explain_retval(int retval);
+void debug_explain_url_s(url_s *u);
 
 #endif

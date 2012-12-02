@@ -9,6 +9,9 @@
   */
 
 
+
+
+
 void internal_traffic_explode_url(char *url,url_s *u) {
   u->has_dir       = false;
   u->has_title     = false;
@@ -66,7 +69,33 @@ void internal_traffic_explode_url(char *url,url_s *u) {
   return;
 }
 
+void debug_explain_url_s(url_s *u) {
+	int i=0;
+	for(i=0;i<u->n_host_parts;i++) {
+		printf("url_part[%d]=%s\n",i,u->host_parts[i]);
+	};
+}
 
+void debug_explain_retval(int retval) {
+	if(retval & RETVAL_MATCH_INTERNAL_VALID) {
+		printf("[DBG] RETVAL_MATCH_INTERNAL_VALID\n");
+	};
+	if(retval & RETVAL_MATCH_INTERNAL_NO_URL) {
+		printf("[DBG] RETVAL_MATCH_INTERNAL_NO_URL\n");
+	};
+	if(retval & RETVAL_MATCH_INTERNAL_IP_REJECTED) {
+		printf("[DBG] RETVAL_MATCH_INTERNAL_IP_REJECTED\n");
+	};
+	if(retval & RETVAL_MATCH_INTERNAL_PROJECT_EMPTY_REJECTED) {
+		printf("[DBG] RETVAL_MATCH_INTERNAL_PROJECT_EMPTY_REJECTED\n");
+	};
+	if(retval & RETVAL_MATCH_INTERNAL_LANGUAGE_EMPTY_REJECTED) {
+		printf("[DBG] RETVAL_MATCH_INTERNAL_LANGUAGE_EMPTY_REJECTED\n");
+	};
+	if(retval & RETVAL_MATCH_INTERNAL_SPECIAL_UNRECOGNIZED) {
+		printf("[DBG] RETVAL_MATCH_INTERNAL_SPECIAL_UNRECOGNIZED\n");
+	};
+}
 
 
 bool internal_traffic_ip_check(char *ip) {
@@ -245,7 +274,7 @@ int match_internal_traffic_rules(char *url,char *ip,url_s *u,info *in) {
       in->title = u->title;
       retval |= RETVAL_MATCH_INTERNAL_VALID;
       // for blog.wikimedia.org
-    } else if(strcmp(u->host_parts[1],"wikimedia")==0 && strcmp(u->host_parts[0],"blog")==0 ) {
+    } else if(strcmp(u->host_parts[0],"blog")==0 && strcmp(u->host_parts[1],"wikimedia")==0 ) {
       strcpy(u->title,"main");
       //getting title of blog post
       int len_dir = strlen(u->dir);
@@ -253,9 +282,7 @@ int match_internal_traffic_rules(char *url,char *ip,url_s *u,info *in) {
         u->dir[len_dir-1] = '\0';
         len_dir--;
       };
-      char *title=u->dir + len_dir;
-      while(*--title != '/');
-      in->title = title+1;
+      in->title = u->dir;
       retval |= RETVAL_MATCH_INTERNAL_VALID;
       //for wikimediafoundation.org
     } else if(strcmp(in->project,"wikimediafoundation")==0) {

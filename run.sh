@@ -61,6 +61,7 @@ collector_output1=$(cat example.collector.log  | $UDP_FILTER -o -B | diff exampl
 collector_output2=$(cat example.collector2.log | ./udp-filter -o | grep "null" | wc -l )
 collector_output3_wo=$(cat example.wikivoyage.wikidata.log | ./udp-filter -o | grep "\.wo" | wc -l )
 collector_output3_wd=$(cat example.wikivoyage.wikidata.log | ./udp-filter -o | grep "\.wd" | wc -l )
+collector_output4=$(cat example.blog.wikimedia.log | ./udp-filter -o | grep "/2012/11/30/wiki-loves-monuments-the-danish-finalists" | wc -l)
 
 red="\033[31m"
 green="\033[32m"
@@ -208,6 +209,12 @@ else
 fi
 
 if [ $collector_output3_wo -eq 2 -a $collector_output3_wd -eq 2 ]; then
+	cecho "Pass" $green
+else
+	cecho "Fail" $red
+fi
+
+if [ $collector_output4 -eq 1 ]; then
 	cecho "Pass" $green
 else
 	cecho "Fail" $red
