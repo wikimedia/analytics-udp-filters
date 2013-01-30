@@ -30,9 +30,9 @@ int match_domain(char *url, Filter *filters, int num_domain_filters,int _verbose
 int match_http_status(char *http_status_field, Filter *filters, int num_http_status_filters,int _verbose_flag);
 
 extern const char comma_delimiter;
-extern const char ws_delimiter[] ;
 extern const char fs_delimiter   ;
 extern const char us_delimiter   ;
+extern char *ws_delimiter        ;
 
 extern SearchType  search ;
 extern RecodeType  recode ;

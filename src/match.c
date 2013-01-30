@@ -24,9 +24,10 @@
 
 
 const char comma_delimiter = ',';
-const char ws_delimiter[]  = " ";
 const char fs_delimiter    = '/';
 const char us_delimiter    = '-';
+char *ws_delimiter         = " ";
+
 
 SearchType  search  = STRING;
 RecodeType  recode  = NO;
