@@ -9,14 +9,14 @@
 # Uncomment this to turn on verbose mode.
 #export DH_VERBOSE=1
 
-DESTDIR=$(CURDIR)/debian/udp-filters/usr
+DESTDIR=$(CURDIR)/debian/udp-filter/usr
 
 %:
 	dh  $@
 
 
 override_dh_auto_configure:
-	$(CURDIR)/compile.sh --mandir=$(CURDIR)/debian/udp-filters/usr/share/man --prefix=$(DESTDIR)
+	$(CURDIR)/compile.sh --mandir=$(CURDIR)/debian/udp-filter/usr/share/man --prefix=$(DESTDIR)
 
 install: build 
 	dh_testdir

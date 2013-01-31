@@ -1,4 +1,4 @@
-Source: udp-filters
+Source: udp-filter
 Section: utils
 Priority: extra
 Maintainer: Diederik van Liere <dvanliere@wikimedia.org>
@@ -8,7 +8,7 @@ Vcs-Git: git://gerrit.wikimedia.org:29416/analytics/udp-filters.git
 Vcs-Browser: https://gerrit.wikimedia.org/r/gitweb?p=analytics/udp-filters.git
 Homepage: http://www.mediawiki.org/wiki/Analytics/UDP-filters
 
-Package: udp-filters
+Package: udp-filter
 Architecture: any
 Depends: ${shlibs:Depends}, ${misc:Depends}, libcidr0, libgeoip1, libanon0
 Description: Parses webserver access log lines and filters.
