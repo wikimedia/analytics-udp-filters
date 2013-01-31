@@ -23,7 +23,7 @@
 #endif
 
 // the version is set by the debianize script, don't worry about it
-char *VERSION="development-placeholder-version";
+char *VERSION="0.3.21";
 
 #include <stdio.h>
 #include <stdbool.h>
