@@ -19,9 +19,11 @@
 #include <string.h>
 #include <stdio.h>
 
+#include "countries.h"
+
 // This is an array with valid country codes, the country codes that are
 // supplied on the command line will be checked against this array.
-const char *country_code_array[253] = {
+const char *const country_code_array[] = {
 "A1",    //,Anonymous Proxy
 "A2",    //,Satellite Provider
 "O1",    //,Other Country

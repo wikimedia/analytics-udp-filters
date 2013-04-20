@@ -68,8 +68,7 @@ char *VERSION="development-placeholder-version";
 
 
 
-int params[7];	 // Increase this when you add a new filter to ScreenType enum.
-const int num_predefined_filters = sizeof(params)/sizeof(int);
+bool params[ MAX_FILTER ];
 int verbose_flag = 0;			 // this flag indicates whether we should output detailed debug messages, default is off.
 
 
@@ -653,32 +652,32 @@ void parse(char *country_input,
 
 
 	// DETERMINE NUMBER OF FILTERS
-	for(n=0; n<num_predefined_filters; n++){
+	for(n=0; n<MAX_FILTER; n++){
 		switch (n) {
 
 		case DOMAIN_FILTER:
-			if(params[n] == 1){
+			if(params[n] == true){
 				num_domain_filters = determine_num_obs(domain_input,comma_delimiter);
 				required_hits+=1;
 			}
 			break;
 
 		case PATH_FILTER:
-			if(params[n] ==1 ){
+			if(params[n] == true ){
 				num_path_filters = determine_num_obs(path_input,comma_delimiter);
 				required_hits+=1;
 			}
 			break;
 
 		case IP_FILTER:
-			if(params[n] == 1){
+			if(params[n] == true){
 				num_ipaddress_filters = determine_num_obs(ipaddress_input, comma_delimiter);
 				required_hits+=1;
 			}
 			break;
 
 		case GEO_FILTER:
-			if(params[n] == 1){
+			if(params[n] == true){
 				if(country_input != NULL && strlen(country_input) >1){
 					num_countries_filters = determine_num_obs(country_input, comma_delimiter);
 					required_hits+=1;
@@ -687,14 +686,14 @@ void parse(char *country_input,
 			break;
 
 		case REFERER_FILTER:
-			if(params[n] == 1){
+			if(params[n] == true){
 				num_referer_filters = determine_num_obs(referer_input, comma_delimiter);
 				required_hits+=1;
 			}
 			break;
 
 		case HTTP_STATUS_FILTER:
-			if(params[n] ==1){
+			if(params[n] == true){
 				if(http_status_input != NULL && strlen(http_status_input) >1){
 					num_http_status_filters = determine_num_obs(http_status_input, comma_delimiter);
 					required_hits+=1;
@@ -708,12 +707,12 @@ void parse(char *country_input,
 	Filter filters[num_filters];
 
 	// GEO_FILTER INITIALIZATION
-	GeoIP *gi;
+	GeoIP *gi = NULL;
 	char *countries[num_countries_filters];
 	char *area;
 
 	// FILTER INITIALIZATION
-	for(n=0; n<num_predefined_filters; n++){
+	for(n=0; n<MAX_FILTER; n++){
 		switch (n) {
 
 		case DOMAIN_FILTER:
@@ -917,7 +916,6 @@ void parse(char *country_input,
 				strncmp(x_forwarded_for,"-" ,1)    != 0
 		    ) {
 			    char *ix = x_forwarded_for;
-			    bool found_multiple_ips = false;
 			    bool found_illegal_char = false;
 
 			    // length of the first ip in x-forwarded-for header
@@ -925,7 +923,6 @@ void parse(char *country_input,
 			    for(;*ix != '\0';ix++) {
 			    // we just take what we need which is everything up until the comma
 				    if(*ix == ',' || *ix == '%') {
-					    found_multiple_ips = true;
 					    len = ix - x_forwarded_for;
 					    int sz_copy = min(len,40);
 					    strncpy(x_forwarded_client,x_forwarded_for, sz_copy);
@@ -1009,27 +1006,27 @@ void parse(char *country_input,
 
                 if (url != NULL) {
 
-                        if (params[DOMAIN_FILTER] == 1){
+                        if (params[DOMAIN_FILTER] == true){
                                 found += match_domain(url, filters, num_domain_filters,verbose_flag);
                         }
 
-                        if (params[PATH_FILTER] == 1){
+                        if (params[PATH_FILTER] == true){
                                 found += match_path(url, filters, num_path_filters,verbose_flag);
                         }
 
-                        if (params[HTTP_STATUS_FILTER] == 1){
+                        if (params[HTTP_STATUS_FILTER] == true){
                                 found += match_http_status(http_status, filters, num_http_status_filters,verbose_flag);
                         }
 
-                        if (params[IP_FILTER] == 1){
+                        if (params[IP_FILTER] == true){
                                 found += match_ip_address(ipaddr, filters, num_ipaddress_filters,verbose_flag);
                         }
 
-                        if (params[REFERER_FILTER] == 1){
+                        if (params[REFERER_FILTER] == true){
                                 found += match_domain(referer, filters, num_referer_filters,verbose_flag);
                         }
 
-                        if (params[GEO_FILTER] == 1){
+                        if (params[GEO_FILTER] == true){
                                 if(using_xforwarded_for_geoip) {
                                         area = geo_lookup(gi, x_forwarded_client, bird_int);
                                 } else {
@@ -1235,7 +1232,7 @@ int main(int argc, char **argv){
 		{
 		case 'a':
 			/* Indicate whether we should anonymize the log, default is false */
-			recode = (recode | ANONYMIZE);
+			recode |= ANONYMIZE;
 
 			// if optarg is NULL, then we will not be using
 			// libanon. No need to initialize the anon ip objects
@@ -1272,14 +1269,14 @@ int main(int argc, char **argv){
 		case 'c':
 			/* Optional list of countries to restrict logging */
 			country_input = optarg;
-			params[GEO_FILTER] = 1;
+			params[GEO_FILTER] = true;
 			break;
 
 		case 'd':
 			/* -d is set. This specifies the project: en.wikipedia, commons.
 			 * it should be a part of the domain name
 			 */
-			params[DOMAIN_FILTER] = 1;
+			params[DOMAIN_FILTER] = true;
 			domain_input = optarg;
 			search=STRING;
 			break;
@@ -1287,7 +1284,7 @@ int main(int argc, char **argv){
 		case 'f':
 			/* -f is set. This specificies to filter on the referrer string.
 			*/
-			params[REFERER_FILTER] = 1;
+			params[REFERER_FILTER] = true;
 			referer_input = optarg;
 			search=STRING;
 			break;
@@ -1306,7 +1303,7 @@ int main(int argc, char **argv){
 		case 'g':
 			/* Indicate whether we should do geocode, default is false */
 			recode = (recode | GEO);
-			//params[GEO_FILTER] = 1;
+			//params[GEO_FILTER] = true;
 			break;
 
 		case 'h':
@@ -1318,7 +1315,7 @@ int main(int argc, char **argv){
 
 		case 'i':
 			/* Enable filtering by ip-address or ip-range */
-			params[IP_FILTER] =1;
+			params[IP_FILTER] = true;
 			ipaddress_input = optarg;
 			break;
 
@@ -1333,7 +1330,7 @@ int main(int argc, char **argv){
 
 		case 's':
 			/* Enable filtering by HTTP response status code */
-			params[HTTP_STATUS_FILTER] = 1;
+			params[HTTP_STATUS_FILTER] = true;
 			http_status_input = optarg;
 			break;
 
@@ -1346,7 +1343,7 @@ int main(int argc, char **argv){
 
 		case 'p':
 			/* -p is set. Store the url that needs to be matched. */
-			params[PATH_FILTER]= 1;
+			params[PATH_FILTER] = true;
 			path_input = optarg;
 			search=STRING;
 			break;
@@ -1384,7 +1381,7 @@ int main(int argc, char **argv){
 		exit(EXIT_FAILURE);
 	}
 
-	if (geo_param_supplied==-1 && params[GEO_FILTER] ==1){
+	if (geo_param_supplied==-1 && params[GEO_FILTER] == true){
 		fprintf(stderr,"You supplied the -g parameter without specifying the -b parameter.\n");
 		exit(EXIT_FAILURE);
 	}
