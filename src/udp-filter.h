@@ -26,14 +26,15 @@
 #include <libanon.h>
 
 
-typedef enum ScreenType{
-	NO_FILTER                       = 0, // no filtering, write all hits to a file
-	DOMAIN_FILTER                   = 1, // filter on domain
-	PATH_FILTER                     = 2, // filter on path
-	IP_FILTER                       = 3, // filter on ip address or ip range
-	GEO_FILTER                      = 4, // filter on geographic area
-	HTTP_STATUS_FILTER              = 5, // filter on http response status codes
-	REFERER_FILTER                  = 6, // filter on referer url
+typedef enum ScreenType{       // by default, enums start at 0, increment by 1
+	NO_FILTER,             // no filtering, write all hits to a file
+	DOMAIN_FILTER,         // filter on domain
+	PATH_FILTER,           // filter on path
+	IP_FILTER,             // filter on ip address or ip range
+	GEO_FILTER,            // filter on geographic area
+	HTTP_STATUS_FILTER,    // filter on http response status codes
+	REFERER_FILTER,        // filter on referer url
+	MAX_FILTER             // number of filters (not a valid value)
 } ScreenType;
 
 typedef enum IpMatchType {
