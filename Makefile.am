@@ -2,7 +2,7 @@ CFLAGS=
 AM_CPPFLAGS=
 AM_CFLAGS=$(AM_CXXFLAGS)
 
-bin_PROGRAMS = udp-filter
+bin_PROGRAMS = udp-filter multiplexor
 udp_filter_SOURCES = src/udp-filter.c       \
                      src/udp-filter.h       \
                      src/countries.c        \
@@ -18,6 +18,7 @@ udp_filter_SOURCES = src/udp-filter.c       \
                      src/utils.h            \
                      src/utils.c
 
+multiplexor_SOURCES = src/multiplexor.c
 
 
 AM_CPPFLAGS = $(GEOIP_CFLAGS)
