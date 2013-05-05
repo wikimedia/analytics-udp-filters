@@ -54,7 +54,7 @@ Description: <Wikimedia's udp-filter system.>
 =Background=
 This new filter system replaces the old collection of filters written in C. 
 
-=Command line arguments=
+=Command line arguments for udp-filter=
 The following is a list of valid command line parameters. 
 
 Either --path or --domain are mandatory (you can use them both, the other command line parameters are optional:
@@ -79,7 +79,7 @@ Either --path or --domain are mandatory (you can use them both, the other comman
 For options -u, -p and -c you can enter multiple values if you separate them by 
 a comma.
 
-=Examples=
+=Examples for udp-filter=
 
 
 ./udp_filter -d en.wikipedia            this will log all pageviews (depending 
@@ -124,6 +124,36 @@ help in debugging and verifying that the appropriate hits are being logged.
 This setting is not recommended in production.
 
 ./udp_filter -i 71.190.22.0/24,2607:f0d0:1002:51::/64          this will filter for logs with IP addresses that match the given CIDR ranges.  IPv4 and IPv6 CIDR blocks are supported.
+
+=Description of multiplexer=
+The multiplexor (src/multiplexor.c) is a standalone program that creates a set of child
+processes (all running the same command), then reads lines from stdin and writes each
+line to one of the children in round-robin fashion. It is intended to read from processes
+like udp2log that have limited buffering and tend to lose data if their output stream is not
+read fast enough. So it provides 2 benefits to minimize data loss:
+(a) Improves throughput when spare CPU capacity is available in additional cores.
+(b) Provides additional buffering when transient spikes slow down a single child.
+
+=Command line arguments for multiplexer=
+-cmd <cmd>   -- command to run in subprocesses (default: none)
+[-proc n]    -- number of child processes to create (default: 2)
+[-lines n]   -- max. lines to process (default: 0 = infinite)
+[-o <path>]  -- path to output files (default: /var/tmp/multiplexor_)
+[-p <cmd>]   -- path to output pipe command (default: none)
+-cmd is required; only one of -o and -p is allowed
+
+=Examples for multiplexer=
+The udp2log config file can contain lines like this:
+
+# create 2 children with output going to /var/tmp/data_* files; each child runs udp-filter with
+# the given arguments
+#
+pipe 1 /usr/bin/multiplexor -o /var/tmp/data_ -proc 2 -cmd "/usr/bin/udp-filter -F '\t' -i 189.40.0.0/16"
+
+# create 4 children each running udp-filter; output from each is piped to another process
+# running /usr/local/bin/foo which deals with the data as it sees fit.
+#
+pipe 1 /usr/bin/multiplexor -p /usr/local/bin/foo -proc 4 -cmd "/usr/bin/udp-filter -F '\t' -i 189.40.0.0/16"
 
 Acknowledgements
 Many thanks to Roan Kattouw and Tim Starling for showing me the way around in C.
