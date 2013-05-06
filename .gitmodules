@@ -1,3 +1,0 @@
-[submodule "debianize"]
-	path = debianize
-	url = git://github.com/wikimedia-incubator/debianize.git
