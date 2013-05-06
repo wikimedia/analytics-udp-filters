@@ -19,5 +19,4 @@
 
 int verify_country_code(char *country_code);
 
-
-extern const char country_code_array[253];
+extern const char *const country_code_array[];

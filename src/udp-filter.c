@@ -63,14 +63,15 @@ char *VERSION="0.3.23";
  * run -a -d GeoIP.dat -u wiki,waka -v < example.log
  */
 
+// various useful constants
+enum {
+	MAX_FIELD_CNT = 32,
+	LINE_BUF_SIZE = 65534
+};
 
+bool params[ MAX_FILTER ];
 
-
-
-
-int params[7];   // Increase this when you add a new filter to ScreenType enum.
-const int num_predefined_filters = sizeof(params)/sizeof(int);
-int verbose_flag = 0;       // this flag indicates whether we should output detailed debug messages, default is off.
+bool verbose_flag = false;       // whether we should output detailed debug messages
 
 
 // Default paths to GeoIP databases.
@@ -543,134 +544,6 @@ void replace_ip_addr(char *fields[], char* area, int should_anonymize_ip) {
 	}
 }
 
-/**
- * Initializes global anon_ipv4 and anon_ipv6 objects.
- * If anon_key_salt is NULL, a random key salt will
- * be used.
-
-void init_anon_ip(uint8_t *anon_key_salt) {
-	anon_key_t *anon_key = anon_key_new();
-
-	// if anon_key_salt is set, then
-	// use it as the salt to IP address anonymization hashing.
-	if (anon_key_salt) {
-		anon_key_set_key(anon_key, anon_key_salt, strlen((char *)anon_key_salt));
-	}
-	// else choose a random key.
-	else {
-		anon_key_set_random(anon_key);
-	}
-
-	// initialize the ipv4 and ipv6 objects
-	anon_ipv4 = anon_ipv4_new();
-	anon_ipv6 = anon_ipv6_new();
-
-	if (!anon_ipv4 || !anon_ipv6) {
-		fprintf(stderr, "Failed to initialize anonymization IP mapping.\n");
-		anon_key_delete(anon_key);
-		exit(EXIT_FAILURE);
-    }
-
-    anon_ipv4_set_key(anon_ipv4, anon_key);
-    anon_ipv6_set_key(anon_ipv6, anon_key);
-}
-*/
-
-/**
- * Anonymizes an IPv4 or IPv6 string.
- *
- * If the globals anon_ipv4 or anon_ipv6 are not set
- * then the global anonymous_ip string will be used
- * to anonymize the IP.
- *
- * @param  string ip  string IP address.
- * @return string anonymized IP address.
- 
-char *anonymize_ip_address(char *ip) {
-	in_addr_t  raw4_address, raw4_anon_address;
-	in6_addr_t raw6_address, raw6_anon_address;
-	// AF_INET or AF_INET6
-	int   ai_family;
-	// pointer to the binary form of ip.
-	void *raw_address;
-	// string form of anonymized ip.
-	char *anonymized_ip;
-
-	// Big enough to hold 128 IPv6 addresses.
-	// This is just a byte array meant hold raw
-	// IPv4 or IPv6 addresses.  determine_ai_family
-	// will set it to the raw address returned by
-	// getaddrinfo().
-	// NOTE:  This is to avoid an extra call to
-	// inet_pton, since getaddrinfo() converts
-	// a string IP address to its raw binary form.
-	raw_address = malloc(sizeof(in6_addr_t));
-	ai_family   = determine_ai_family(ip, raw_address); // AF_INET or AF_INET6
-
-	// if raw_address is NULL, then getaddrinfo() either
-	// couldn't get ai_family or it failed converting
-	// ip into a binary raw IP address.  Return the
-	// default anonymous_ip string.
-	if (raw_address == NULL) {
-		fprintf(stderr, "determine_ai_family did not return raw_address for %s.", ip);
-		return anonymous_ip;
-	}
-
-	switch (ai_family) {
-		// NOTE.  anon_ipv4_map_pref() and anon_ipv6_map_pref
-		// take a ip*_addr_t struct as the raw address second
-		// argument, NOT a pointer to one.  You'd think this
-		// distinction wouldn't be important, but it is.
-		// I haven't figured out why, but simply dereferencing
-		// and casting the void *raw_address to the proper type
-		// doesn't work.  You *can* get this to compile (if you
-		// use a char * instead of void *), but unless you
-		// memcpy into a ip*_addr_t struct, the anon_ function
-		// will return unreliable results.  I was getting the same
-		// anonymized IPs for different but similiar IPs.
-
-		// anonymize IPv4 address
-		case AF_INET:
-			if (anon_ipv4 == NULL) {
-				anonymized_ip = anonymous_ip;
-			}
-			else {
-				// Anonymize the IPv4 address, saved in raw4_anon_address.
-				memcpy(&raw4_address, raw_address, sizeof(in_addr_t));
-				anon_ipv4_map_pref(anon_ipv4, raw4_address, &raw4_anon_address);
-				// printf("anon_ipv4_map_pref %u -> %u\n", (unsigned int)(raw_address[0]), (unsigned int)raw4_anon_address);
-
-				// Convert the raw anonymized address back to a string
-				anonymized_ip = malloc(INET_ADDRSTRLEN);
-				// If failed, use anonymous_ip "0.0.0.0".  This should never happen.
-				if (!inet_ntop(AF_INET, &raw4_anon_address, anonymized_ip, INET_ADDRSTRLEN)) {
-					perror("anonymize_ip_address: inet_ntop could not convert raw anonymized IPv4 address to a string");
-					anonymized_ip = anonymous_ip;
-				}
-			}
-			break;
-
-		// anonymize IPv6 address
-		case AF_INET6:
-			if (anon_ipv6 == NULL) {
-				anonymized_ip = anonymous_ip;
-			}
-			else {
-				// Anonymize the IPv6 address, saved in raw6_anon_address.
-				memcpy(&raw6_address, raw_address, sizeof(in6_addr_t));
-				anon_ipv6_map_pref(anon_ipv6, raw6_address, &raw6_anon_address);
-				// Convert the raw anonymized address back to a string
-				anonymized_ip = malloc(INET6_ADDRSTRLEN);
-
-				// If failed, use anonymous_ip "0.0.0.0".  This should never happen.
-				if (!inet_ntop(AF_INET6, &raw6_anon_address, anonymized_ip, INET6_ADDRSTRLEN)) {
-					perror("anonymize_ip_address: inet_ntop could not convert raw anonymized IPv6 address to a string");
-					anonymized_ip = anonymous_ip;
-				}
-			}
-			break;
-
-*/
 void free_memory(Filter *filters, char *path_input, char *domain_input, int num_filters, GeoIP* gi, char *countries[], int num_countries_filters) {
 	int i;
 	if(gi){
@@ -722,239 +595,209 @@ void free_memory(Filter *filters, char *path_input, char *domain_input, int num_
 	}
 }
 
-void parse(char *country_input, char *path_input, char *domain_input, char *ipaddress_input, char *http_status_input, char *referer_input, char *bird, char *db_path, int minimum_field_count) {
+void parse(char *country_input,
+	   char *path_input,
+	   char *domain_input,
+	   char *ipaddress_input,
+	   char *http_status_input,
+	   char *referer_input,
+	   char *bird,
+	   char *db_path,
+	   int minimum_field_count) {
+
 	// GENERIC VARIABLES
-	char *fields[maximum_field_count];	// the number of fields we expect in a single line
-	int num_filters = 0;				// the total number of filters we detect from the command line
-	int num_domain_filters = 0;  		// the total number of domain filters
-	int num_path_filters = 0;  		    // the total number of path filters
-	int num_ipaddress_filters = 0;		// the total number of ipaddress filter
-	int num_countries_filters = 0; 	    // the total number countries we want to restrict the filtering
-	int num_http_status_filters = 0; 	// the total number of http status we want to restrict the filtering.
-	int num_referer_filters = 0;
-	int required_hits = 0;
-	int bird_int = 0;
+	char *fields[MAX_FIELD_CNT];       // number of fields we expect in a single line
+	int num_filters             = 0;   // total number of filters we detect from the command line
+	int num_domain_filters      = 0;   // total number of domain filters
+	int num_path_filters        = 0;   // total number of path filters
+	int num_ipaddress_filters   = 0;   // total number of ipaddress filter
+	int num_countries_filters   = 0;   // total number countries we want to restrict the filtering
+	int num_http_status_filters = 0;   // total number of http status we want to restrict the filtering.
+	int num_referer_filters     = 0;
+	int required_hits           = 0;
+	int bird_int                = 0;
 	int i;
-	int j;
-	int n;
 
 	int field_count_this_line=0;  // number of fields found in the current line
 
-	char line[65534];
+	char line[ LINE_BUF_SIZE ];
 	char *ipaddr;
-	char *ua; //user-agent, currently used to detect bots
 	char *url;
 	char *http_status;
 	char *referer;
-	char *response_size; //response size
-
-
 
 
 	// DETERMINE NUMBER OF FILTERS
-	for(n=0; n<num_predefined_filters; n++){
-		switch (n) {
-
-		case DOMAIN_FILTER:
-			if(params[n] == 1){
-				num_domain_filters = determine_num_obs(domain_input,comma_delimiter);
-				required_hits+=1;
-			}
-			break;
-
-		case PATH_FILTER:
-			if(params[n] ==1 ){
-				num_path_filters = determine_num_obs(path_input,comma_delimiter);
-				required_hits+=1;
-			}
-			break;
-
-		case IP_FILTER:
-			if(params[n] == 1){
-				num_ipaddress_filters = determine_num_obs(ipaddress_input, comma_delimiter);
-				required_hits+=1;
-			}
-			break;
-
-		case GEO_FILTER:
-			if(params[n] == 1){
-				if(country_input != NULL && strlen(country_input) >1){
-					num_countries_filters = determine_num_obs(country_input, comma_delimiter);
-					required_hits+=1;
-				}
-			}
-			break;
-
-		case REFERER_FILTER:
-			if(params[n] == 1){
-				num_referer_filters = determine_num_obs(referer_input, comma_delimiter);
-				required_hits+=1;
-			}
-			break;
-
-		case HTTP_STATUS_FILTER:
-			if(params[n] ==1){
-				if(http_status_input != NULL && strlen(http_status_input) >1){
-					num_http_status_filters = determine_num_obs(http_status_input, comma_delimiter);
-					required_hits+=1;
-				}
-			}
-			break;
+	if(params[DOMAIN_FILTER]){
+		num_domain_filters = determine_num_obs(domain_input,comma_delimiter);
+		required_hits+=1;
+	}
+	if(params[PATH_FILTER]){
+		num_path_filters = determine_num_obs(path_input,comma_delimiter);
+		required_hits+=1;
+	}
+	if(params[IP_FILTER]){
+		num_ipaddress_filters = determine_num_obs(ipaddress_input, comma_delimiter);
+		required_hits+=1;
+	}
+	if(params[GEO_FILTER]){
+		if(country_input != NULL && strlen(country_input) >1){
+			num_countries_filters = determine_num_obs(country_input, comma_delimiter);
+			required_hits+=1;
+		}
+	}
+	if(params[REFERER_FILTER]){
+		num_referer_filters = determine_num_obs(referer_input, comma_delimiter);
+		required_hits+=1;
+	}
+	if(params[HTTP_STATUS_FILTER]){
+		if(http_status_input != NULL && strlen(http_status_input) >1){
+			num_http_status_filters = determine_num_obs(http_status_input, comma_delimiter);
+			required_hits+=1;
 		}
 	}
 
-	num_filters = num_path_filters+num_domain_filters+num_ipaddress_filters+num_countries_filters+num_http_status_filters+num_referer_filters;
+	num_filters = num_path_filters + num_domain_filters + num_ipaddress_filters
+		+ num_countries_filters + num_http_status_filters + num_referer_filters;
 	Filter filters[num_filters];
 
 	// GEO_FILTER INITIALIZATION
-	GeoIP *gi;
+	GeoIP *gi = NULL;    // initialize to suppress compiler warning
 	char *countries[num_countries_filters];
 	char *area;
 
 	// FILTER INITIALIZATION
-	for(n=0; n<num_predefined_filters; n++){
-		switch (n) {
+	if(params[DOMAIN_FILTER]){
+		init_domains(filters, domain_input, comma_delimiter);
+	} else {
+		domain_input=NULL;
+	}
 
-		case DOMAIN_FILTER:
-			if(params[n] ==1){
-				init_domains(filters, domain_input, comma_delimiter);
-			} else {
-				domain_input=NULL;
+	if(params[PATH_FILTER]){
+		init_paths(filters, path_input, comma_delimiter);
+	} else {
+		path_input = NULL;
+	}
+
+	if(params[IP_FILTER]){
+		init_ip_addresses(filters, ipaddress_input, comma_delimiter);
+	} else {
+		ipaddress_input = NULL;
+	}
+
+	if (params[REFERER_FILTER]){
+		init_domains(filters, referer_input, comma_delimiter);
+	} else {
+		referer_input = NULL;
+	}
+
+	if( ! (params[GEO_FILTER] || (recode & GEO)) ) {
+		country_input = NULL;
+	} else {
+		init_countries(countries, country_input, num_countries_filters, comma_delimiter);
+		bird_int = init_bird_level(bird);
+		/*
+		 *  Before changing the type of cache, have a look at this benchmark:
+		 *  http://www.maxmind.com/app/benchmark
+		 *  and choose wisely.
+		 */
+		switch(bird_int){
+		case COUNTRY:
+			if(db_path!=NULL){
+				db_country_path=db_path;
 			}
+			gi = GeoIP_open(db_country_path, GEOIP_MEMORY_CACHE);
 			break;
 
-		case PATH_FILTER:
-			if(params[n] ==1){
-				init_paths(filters, path_input, comma_delimiter);
-			} else {
-				path_input = NULL;
+		case REGION:
+			if(db_path!=NULL){
+				db_region_path=db_path;
 			}
+			gi = GeoIP_open(db_region_path, GEOIP_MEMORY_CACHE);
 			break;
 
-		case IP_FILTER:
-			if(params[n] ==1){
-				init_ip_addresses(filters, ipaddress_input, comma_delimiter);
-			} else {
-				ipaddress_input = NULL;
+		case CITY:
+			if(db_path!=NULL){
+				db_city_path=db_path;
 			}
+			gi = GeoIP_open(db_city_path, GEOIP_MEMORY_CACHE);
 			break;
 
-		case REFERER_FILTER:
-			if (params[n]==1){
-				init_domains(filters, referer_input, comma_delimiter);
-			} else {
-				referer_input = NULL;
+		case LAT_LON:
+			if(db_path!=NULL){
+				db_city_path=db_path;
 			}
+			gi = GeoIP_open(db_city_path, GEOIP_MEMORY_CACHE);
 			break;
 
-		case GEO_FILTER:
-			if(params[n] ==1 || (recode & GEO)) {
-				init_countries(countries, country_input, num_countries_filters, comma_delimiter);
-				bird_int = init_bird_level(bird);
-				/*
-				 *  Before changing the type of cache, have a look at this benchmark:
-				 *  http://www.maxmind.com/app/benchmark
-				 *  and choose wisely.
-				 */
-				switch(bird_int){
-				case COUNTRY:
-					if(db_path!=NULL){
-						db_country_path=db_path;
-					}
-					gi = GeoIP_open(db_country_path, GEOIP_MEMORY_CACHE);
-					break;
-
-				case REGION:
-					if(db_path!=NULL){
-						db_region_path=db_path;
-					}
-					gi = GeoIP_open(db_region_path, GEOIP_MEMORY_CACHE);
-					break;
-
-				case CITY:
-					if(db_path!=NULL){
-						db_city_path=db_path;
-					}
-					gi = GeoIP_open(db_city_path, GEOIP_MEMORY_CACHE);
-					break;
-
-				case LAT_LON:
-					if(db_path!=NULL){
-						db_city_path=db_path;
-					}
-					gi = GeoIP_open(db_city_path, GEOIP_MEMORY_CACHE);
-					break;
-
-				case EVERYTHING:
-					if(db_path!=NULL){
-						db_city_path=db_path;
-					}
-					gi = GeoIP_open(db_city_path, GEOIP_MEMORY_CACHE);
-					break;
-				}
-
-				if (gi == NULL) {
-					fprintf(stderr, "Error opening MaxMind Geo database.\n");
-					fprintf(stderr, "Path used for country database:%s\n", db_country_path);
-					fprintf(stderr, "Path used for region database:%s\n", db_region_path);
-					fprintf(stderr, "Path used for city database:%s\n", db_city_path);
-					exit(EXIT_FAILURE);
-				} else {
-					if(verbose_flag){
-						char *db_info =GeoIP_database_info(gi);
-						unsigned char db_edition = GeoIP_database_edition(gi);
-						GeoIPDBTypes geodbtype = (GeoIPDBTypes)db_info;
-						fprintf(stderr,"Maxmind database: %i; version: %i\n", db_edition, geodbtype);
-					}
-				}
-			} else {
-				country_input =NULL;
+		case EVERYTHING:
+			if(db_path!=NULL){
+				db_city_path=db_path;
 			}
+			gi = GeoIP_open(db_city_path, GEOIP_MEMORY_CACHE);
 			break;
-		case HTTP_STATUS_FILTER:
-			if(params[n] ==1){
-				init_http_status(filters, http_status_input, comma_delimiter);
-			} else {
-				http_status_input = NULL;
+		}
+
+		if (gi == NULL) {
+			fprintf(stderr, "Error opening MaxMind Geo database.\n");
+			fprintf(stderr, "Path used for country database:%s\n", db_country_path);
+			fprintf(stderr, "Path used for region database:%s\n", db_region_path);
+			fprintf(stderr, "Path used for city database:%s\n", db_city_path);
+			exit(EXIT_FAILURE);
+		} else {
+			if(verbose_flag){
+				char *db_info =GeoIP_database_info(gi);
+				unsigned char db_edition = GeoIP_database_edition(gi);
+				GeoIPDBTypes geodbtype = (GeoIPDBTypes)db_info;
+				fprintf(stderr,"Maxmind database: %i; version: %i\n", db_edition, geodbtype);
 			}
-			break;
 		}
 	}
 
+	if(params[HTTP_STATUS_FILTER]){
+		init_http_status(filters, http_status_input, comma_delimiter);
+	} else {
+		http_status_input = NULL;
+	}
+
+
 	if (verbose_flag){
-		fprintf(stderr, "num_path_filters:%d\tnum_domain_filters:%d\tnum_http_status_filters:%d\tip_address_count:%d\tcountries_count:%d\treferer_count:%d\n",
-			num_path_filters, num_domain_filters, num_http_status_filters, num_ipaddress_filters, num_countries_filters, num_referer_filters);
+		fprintf(stderr, "num_path_filters:%d\tnum_domain_filters:%d"
+			"\tnum_http_status_filters:%d\tip_address_count:%d"
+			"\tcountries_count:%d\treferer_count:%d\n",
+			num_path_filters, num_domain_filters, num_http_status_filters,
+			num_ipaddress_filters, num_countries_filters, num_referer_filters);
 	}
 
 
 	// Now that we have initilaized all the filters,
 	// do the actual filtering and conversion of the
 	// incoming data.
-	while (!feof(stdin)) {
+	while ( true ) {
 		int found =0;
 		area = NULL;
-		//re-initialize the fields array.
-		for (j = 0; j < maximum_field_count; j++) {
-			fields[j] = NULL;
-		}
 
 		char *r;
-		r=fgets(line, 65534, stdin);
+		r=fgets(line, LINE_BUF_SIZE, stdin);
 		if(!r) {
 			break;
 		}
 
 		i = 0;
+		char *p;
 		do {
 			fields[i] = r;
-			strsep(&r, ws_delimiter);
+			//strsep(&r, ws_delimiter);
+			p = strchr( r, *ws_delimiter );
 			i++;
-		} while (r != NULL && i < maximum_field_count);
+                        if ( NULL == p )
+                                break;
+                        *p = 0;
+                        r = p + 1;
+		} while (i < MAX_FIELD_CNT);
 
-		if (i < minimum_field_count || r != NULL){
-			/* line contains less than minimum_field_count fields. ignore this line.
-			 */
-			continue;
+		if (i < minimum_field_count || i == MAX_FIELD_CNT){
+			continue;    // ignore line since field count is outside expected range
 		}
 
 
@@ -965,34 +808,32 @@ void parse(char *country_input, char *path_input, char *domain_input, char *ipad
 		http_status   = fields[5];
 		url           = fields[8];
 		referer       = fields[11];
-		ua            = fields[13];//necessary for bot detection
-		response_size = fields[6]; //response size
-
+		//ua            = fields[13]; // necessary for bot detection
 
 
 		if (url != NULL) {
 
-			if (params[DOMAIN_FILTER] == 1){
+			if (params[DOMAIN_FILTER]){
 				found += match_domain(url, filters, num_domain_filters,verbose_flag);
 			}
 
-			if (params[PATH_FILTER] == 1){
+			if (params[PATH_FILTER]){
 				found += match_path(url, filters, num_path_filters,verbose_flag);
 			}
 
-			if (params[HTTP_STATUS_FILTER] == 1){
+			if (params[HTTP_STATUS_FILTER]){
 				found += match_http_status(http_status, filters, num_http_status_filters,verbose_flag);
 			}
 
-			if (params[IP_FILTER] == 1){
+			if (params[IP_FILTER]){
 				found += match_ip_address(ipaddr, filters, num_ipaddress_filters,verbose_flag);
 			}
 
-			if (params[REFERER_FILTER] == 1){
+			if (params[REFERER_FILTER]){
 				found += match_domain(referer, filters, num_referer_filters,verbose_flag);
 			}
 
-			if (params[GEO_FILTER] == 1){
+			if (params[GEO_FILTER]){
 				area = geo_lookup(gi, ipaddr, bird_int);
 				found += geo_check(area, countries, num_countries_filters,verbose_flag);
 				if (verbose_flag){
@@ -1003,7 +844,7 @@ void parse(char *country_input, char *path_input, char *domain_input, char *ipad
 
 		// required_hits will equal the number of filters
 		// given.  These include ip, domain, path, status,
-		// and country filtering.  If no filters where given,
+		// and country filtering.  If no filters were given,
 		// then found will be 0 AND require_hits will be 0,
 		// allowing the line to pass through.
 		if (found >= required_hits) {
@@ -1113,22 +954,21 @@ void usage() {
 }
 
 int main(int argc, char **argv){
-	char *country_input = NULL;
-	char *path_input = NULL;
-	char *domain_input = NULL;
-	char *ipaddress_input = NULL;
-	char *referer_input = NULL;
-	char *http_status_input = NULL;
-	char *db_path = NULL;
-	char *bird = NULL;
-	int geo_param_supplied = -1;
-        int output_for_collector_flag = 0; // this flag indicates if the output will be tailored for collector
-        int bot_flag = 0; // this flag indicates if bot detection will occur
+	char *country_input      = NULL;
+	char *path_input         = NULL;
+	char *domain_input       = NULL;
+	char *ipaddress_input    = NULL;
+	char *referer_input      = NULL;
+	char *http_status_input  = NULL;
+	char *db_path            = NULL;
+	char *bird               = NULL;
+	bool bird_param_supplied  = false;
 
 	// Expected minimum number of fields in a line.
-	// There  can be no fewer than this, but no more than
-	// maximum_field_count space separated fields in a long line.
+	// There can be no fewer than this, but no more than
+	// MAX_FIELD_CNT space separated fields in a long line.
 	// Anything outside of this range will be discarded.
+	//
 	int minimum_field_count = 14;
 
 	static struct option long_options[] = {
@@ -1161,7 +1001,7 @@ int main(int argc, char **argv){
 		{
 		case 'a':
 			/* Indicate whether we should anonymize the log, default is false */
-			recode = (recode | ANONYMIZE);
+			recode |= ANONYMIZE;
 
 			// if optarg is NULL, then we will not be using
 			// libanon.  No need to initialize the anon ip objects
@@ -1185,21 +1025,21 @@ int main(int argc, char **argv){
 			break;
 
 		case 'b':
-			geo_param_supplied =0;
+			bird_param_supplied = true;
 			bird = optarg;
 			break;
 
 		case 'c':
 			/* Optional list of countries to restrict logging */
 			country_input = optarg;
-			params[GEO_FILTER] = 1;
+			params[GEO_FILTER] = true;
 			break;
 
 		case 'd':
 			/* -d is set. This specifies the project: en.wikipedia, commons.
 			 * it should be a part of the domain name
 			 */
-			params[DOMAIN_FILTER] = 1;
+			params[DOMAIN_FILTER] = true;
 			domain_input = optarg;
 			search=STRING;
 			break;
@@ -1207,7 +1047,7 @@ int main(int argc, char **argv){
 		case 'f':
 			/* -f is set. This specificies to filter on the referrer string.
 			*/
-			params[REFERER_FILTER] = 1;
+			params[REFERER_FILTER] = true;
 			referer_input = optarg;
 			search=STRING;
 			break;
@@ -1225,8 +1065,8 @@ int main(int argc, char **argv){
 
 		case 'g':
 			/* Indicate whether we should do geocode, default is false */
-			recode = (recode | GEO);
-			//params[GEO_FILTER] = 1;
+			recode |= GEO;
+			//params[GEO_FILTER] = true;
 			break;
 
 		case 'h':
@@ -1238,7 +1078,7 @@ int main(int argc, char **argv){
 
 		case 'i':
 			/* Enable filtering by ip-address or ip-range */
-			params[IP_FILTER] =1;
+			params[IP_FILTER] = true;
 			ipaddress_input = optarg;
 			break;
 
@@ -1253,7 +1093,7 @@ int main(int argc, char **argv){
 
 		case 's':
 			/* Enable filtering by HTTP response status code */
-			params[HTTP_STATUS_FILTER] = 1;
+			params[HTTP_STATUS_FILTER] = true;
 			http_status_input = optarg;
 			break;
 		case 'r':
@@ -1265,14 +1105,14 @@ int main(int argc, char **argv){
 
 		case 'p':
 			/* -p is set. Store the url that needs to be matched. */
-			params[PATH_FILTER]= 1;
+			params[PATH_FILTER] = true;
 			path_input = optarg;
 			search=STRING;
 			break;
 
 		case 'v':
 			/* Turn verbose on */
-			verbose_flag = 1;
+			verbose_flag = true;
 			break;
 
 		case 'V':
@@ -1286,16 +1126,16 @@ int main(int argc, char **argv){
 		}
 	}
 
-	// minimum_field_count cannot be greater than maximum_field_count
-	if (minimum_field_count > maximum_field_count)
+	// minimum_field_count cannot be greater than MAX_FIELD_CNT
+	if (minimum_field_count > MAX_FIELD_CNT)
 	{
-		fprintf(stderr,"min-field-count (%i) cannot be greater than %i.\n", minimum_field_count, maximum_field_count);
+		fprintf(stderr,"min-field-count (%i) cannot be greater than %i.\n", minimum_field_count, MAX_FIELD_CNT);
 		version();
 		usage();
 		exit(EXIT_FAILURE);
 	}
 
-	if (geo_param_supplied==-1 && params[GEO_FILTER] ==1){
+	if ( !bird_param_supplied && params[GEO_FILTER]){
 		fprintf(stderr,"You supplied the -g parameter without specifying the -b parameter.\n");
 		exit(EXIT_FAILURE);
 	}
@@ -1305,7 +1145,15 @@ int main(int argc, char **argv){
 		usage();
 		exit(EXIT_FAILURE);
 	} else {
-		parse(country_input, path_input, domain_input, ipaddress_input, http_status_input, referer_input, bird, db_path, minimum_field_count);
+		parse(country_input,
+		      path_input,
+		      domain_input,
+		      ipaddress_input,
+		      http_status_input,
+		      referer_input,
+		      bird,
+		      db_path,
+		      minimum_field_count);
 		return EXIT_SUCCESS;
 	}
 	return 0;
